@@ -1,0 +1,236 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<!-- Note:  A "Server" is not itself a "Container", so you may not
+     define subcomponents such as "Valves" at this level.
+     Documentation at /docs/config/server.html
+ -->
+<Server port="8005" shutdown="SHUTDOWN">
+  <Listener className="org.apache.catalina.startup.VersionLoggerListener" />
+  <!-- Security listener. Documentation at /docs/config/listeners.html
+  <Listener className="org.apache.catalina.security.SecurityListener" />
+  -->
+  <!-- APR library loader. Documentation at /docs/apr.html -->
+  <Listener className="org.apache.catalina.core.AprLifecycleListener" SSLEngine="on" />
+  <!-- Prevent memory leaks due to use of particular java/javax APIs-->
+  <Listener className="org.apache.catalina.core.JreMemoryLeakPreventionListener" />
+  <Listener className="org.apache.catalina.mbeans.GlobalResourcesLifecycleListener" />
+  <Listener className="org.apache.catalina.core.ThreadLocalLeakPreventionListener" />
+
+  <!-- Global JNDI resources
+       Documentation at /docs/jndi-resources-howto.html
+  -->
+  <GlobalNamingResources>
+    <!-- Editable user database that can also be used by
+         UserDatabaseRealm to authenticate users
+    -->
+    <Resource name="UserDatabase" auth="Container"
+              type="org.apache.catalina.UserDatabase"
+              description="User database that can be updated and saved"
+              factory="org.apache.catalina.users.MemoryUserDatabaseFactory"
+              pathname="conf/tomcat-users.xml" />
+  </GlobalNamingResources>
+
+  <!-- A "Service" is a collection of one or more "Connectors" that share
+       a single "Container" Note:  A "Service" is not itself a "Container",
+       so you may not define subcomponents such as "Valves" at this level.
+       Documentation at /docs/config/service.html
+   -->
+  <!--
+    Service 主要用于关联一个引擎和与此引擎相关的连接器，每个连接器通过一个特定的端口和协议接收请求
+    并将其转发至关联的引擎进行处理。因此，Service 要包含一个引擎、一个或多个连接器!
+  -->
+  <Service name="Catalina">
+
+    <!--The connectors can use a shared executor, you can define one or more named thread pools-->
+    <!--
+    <Executor name="tomcatThreadPool" namePrefix="catalina-exec-"
+        maxThreads="150" minSpareThreads="4"/>
+    -->
+
+
+    <!-- A "Connector" represents an endpoint by which requests are received
+         and responses are returned. Documentation at :
+         Java HTTP Connector: /docs/config/http.html
+         Java AJP  Connector: /docs/config/ajp.html
+         APR (HTTP/AJP) Connector: /docs/apr.html
+         Define a non-SSL/TLS HTTP/1.1 Connector on port 8080
+    -->
+    <!--
+       支持处理不同请求的组件，一个引擎可以有一个或多个连接器，以适应多种请求方式。
+       默认只开启了处理 Http 协议的连接器。如果需要使用其他协议，需要在 Tomcat中配置该协议的连接器。
+       protocol="org.apache.coyote.http11.Http11AprProtocol"
+       protocol="org.apache.coyote.http11.Http11NioProtocol"
+    -->
+    <Connector
+               port="8080"
+               protocol="org.apache.coyote.http11.Http11NioProtocol"
+               enableLookups="false"
+               maxCookieCount="200"
+               maxParameterCount="1"
+               maxPostSize="2097152"
+               maxSavePostSize="4096"
+               maxThreads="200"
+               minSpareThreads="10"
+               acceptCount="100"
+               maxConnections = "8192"
+               disableUploadTimeout="true"
+               connectionTimeout="20000"
+               URIEncoding="UTF-8"
+               redirectPort="8443"
+               compression="on"
+               compressionMinSize="1024"
+               useSendfile="false"
+               noCompressionUserAgents="gozilla, traviata"
+               compressibleMimeType="text/html,text/xml,text/plain,text/css,text/javascript,application/javascript"/>
+
+    <!-- A "Connector" using the shared thread pool-->
+    <!--
+    -->
+    <!-- Define an SSL/TLS HTTP/1.1 Connector on port 8443
+         This connector uses the NIO implementation. The default
+         SSLImplementation will depend on the presence of the APR/native
+         library and the useOpenSSL attribute of the
+         AprLifecycleListener.
+         Either JSSE or OpenSSL style configuration may be used regardless of
+         the SSLImplementation selected. JSSE style configuration is used below.
+    -->
+    <!-- https协议，配置一个connector，使用jdk的keytool生成秘钥库来实现-->
+   <Connector port="8443" protocol="org.apache.coyote.http11.Http11NioProtocol"
+              enableLookups="false"
+              maxThreads="1000"
+              minSpareThreads="100"
+              acceptCount="900"
+              disableUploadTimeout="true"
+              connectionTimeout="20000"
+              URIEncoding="UTF-8"
+              redirectPort="8443"
+              compression="on"
+              compressionMinSize="1024"
+              useSendfile="false"
+              noCompressionUserAgents="gozilla, traviata"
+              compressibleMimeType="text/html,text/xml,text/plain,text/css,text/javascript,application/javascript"
+              scheme="https" secure="true" SSLEnabled="true"
+              relaxedPathChars="|{}[],%"
+              relaxedQueryChars="|{}[],%">
+        <UpgradeProtocol className="org.apache.coyote.http2.Http2Protocol" />
+        <SSLHostConfig>
+            <Certificate certificateKeystoreFile="conf/tomcatkey.keystore"
+                         certificateKeystorePassword="com.appleyk"
+                         type="RSA" />
+        </SSLHostConfig>
+    </Connector>
+    -->
+    <!-- Define an SSL/TLS HTTP/1.1 Connector on port 8443 with HTTP/2
+         This connector uses the APR/native implementation which always uses
+         OpenSSL for TLS.
+         Either JSSE or OpenSSL style configuration may be used. OpenSSL style
+         configuration is used below.
+    -->
+    <!--
+    <Connector port="8443" protocol="org.apache.coyote.http11.Http11AprProtocol"
+               maxThreads="150" SSLEnabled="true" >
+        <UpgradeProtocol className="org.apache.coyote.http2.Http2Protocol" />
+        <SSLHostConfig>
+            <Certificate certificateKeyFile="conf/localhost-rsa-key.pem"
+                         certificateFile="conf/localhost-rsa-cert.pem"
+                         certificateChainFile="conf/localhost-rsa-chain.pem"
+                         type="RSA" />
+        </SSLHostConfig>
+    </Connector>
+    -->
+
+    <!-- Define an AJP 1.3 Connector on port 8009 -->
+    <!--
+    <Connector protocol="AJP/1.3"
+               address="::1"
+               port="8009"
+               redirectPort="8443" />
+    -->
+
+    <!-- An Engine represents the entry point (within Catalina) that processes
+         every request.  The Engine implementation for Tomcat stand alone
+         analyzes the HTTP headers included with the request, and passes them
+         on to the appropriate Host (virtual host).
+         Documentation at /docs/config/engine.html -->
+
+    <!-- You should set jvmRoute to support load-balancing via AJP ie :
+    <Engine name="Catalina" defaultHost="localhost" jvmRoute="jvm1">
+    -->
+    <!-- Engine 是 Servlet 处理器的一个实例，即 Servlet 引擎，定义在 server.xml 中的 Service 标记中。
+     Engine 需要 defaultHost 属性来为其定义一个接收所有发往非明确定义虚拟主机的请求的 host 组件。
+     意思就是一个Engine有多个虚拟host，如果用户访问的虚拟主机找不到的话，engine就会使用默认host，也就是
+     我们默认配置里的localhost也就是本机tomcat所在的服务器的ip形式来访问我们部署的servlet应用
+    -->
+    <Engine name="Catalina" defaultHost="localhost">
+
+      <!--For clustering, please take a look at documentation at:
+          /docs/cluster-howto.html  (simple how to)
+          /docs/config/cluster.html (reference documentation) -->
+      <!--
+      <Cluster className="org.apache.catalina.ha.tcp.SimpleTcpCluster"/>
+      -->
+
+      <!-- Use the LockOutRealm to prevent attempts to guess user passwords
+           via a brute-force attack -->
+      <Realm className="org.apache.catalina.realm.LockOutRealm">
+        <!-- This Realm uses the UserDatabase configured in the global JNDI
+             resources under the key "UserDatabase".  Any edits
+             that are performed against this UserDatabase are immediately
+             available for use by the Realm.  -->
+        <Realm className="org.apache.catalina.realm.UserDatabaseRealm"
+               resourceName="UserDatabase"/>
+      </Realm>
+
+      <!-- 配置默认虚拟主机，deployIgnore忽略应用部署 -->
+<!--      <Host name="localhost"  appBase="webapps"-->
+<!--            unpackWARs="true" autoDeploy="true" deployIgnore="^R.*"/>-->
+
+      <Host name="localhost"  appBase="webapps"
+            unpackWARs="true" autoDeploy="true"/>
+      <!--
+            位于 Engine 容器中用于接收请求并进行相应处理的虚拟主机。通过该容器可以运行 Servlet 或者 JSP 来处理请求。
+      -->
+      <Host name="www.appleyk.com"  appBase="webapps"
+            unpackWARs="true" autoDeploy="true">
+        <Alias>appleyk.com</Alias>
+
+        <!-- Context 是 Host 的子标签，代表指定一个 Web 应用，它运行在某个指定的虚拟主机（Host） 上；
+         每个 Web 应用都是一个 WAR 文件，或文件的目录；server.xml 配置中没有配置 Context 属性，默认支持运行多个项目。
+         path：context path 既浏览器访问项目的访问路径。
+         docBase：相应的 Web 应用程序的存放位置；也可以使用相对路径，起始路径为此 Context 所属 Host 中 appBase 定义的路径；
+        -->
+         <Context path="/test" reloadable="true" docBase="servlet-demo##2.0"/>
+
+        <!-- SingleSignOn valve, share authentication between web applications
+             Documentation at: /docs/config/valve.html -->
+        <!--
+        <Valve className="org.apache.catalina.authenticator.SingleSignOn" />
+        -->
+
+        <!-- Access log processes all example. 日志阀门，记录每个应用的访问日志
+             Documentation at: /docs/config/valve.html
+             Note: The pattern used is equivalent to using pattern="common" -->
+        <Valve className="org.apache.catalina.valves.AccessLogValve" directory="logs"
+               prefix="localhost_access_log" suffix=".txt"
+               pattern="%h %l %u %t &quot;%r&quot; %s %b" />
+        <!--自定义阀门，对当前host下的所有servlet的请求进行"拦截"-->
+        <Valve className="com.appleyk.TestValve"/>
+      </Host>
+    </Engine>
+  </Service>
+</Server>

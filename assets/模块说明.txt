@@ -1,0 +1,27 @@
+-java
+ -javax（9之前叫jakarta，之后叫javax，这个文件夹下面保存的是新的Java EE规范，18年后Eclipse改名叫Jakarta EE）
+  -annotation（公共注解）
+  -ejb（EJB 是开发和部署基于组件的企业级应用的架构，这个目录下就放了两个注解）
+  -el(表达式语言，用在jsp中求解表达式的值)
+  -mail(邮件相关)
+  -persistence（持久化相关）
+  -security(安全相关)
+  -servlet(servlet规范，本质上tomcat就是一个实现了servlet规范的容器)
+  -transaction(事务相关)
+  -websocket(定义了使用 websocket 协议的服务端和客户端 API)
+  -xml.ws(定义了基于 SOAP 协议的 xml 方式的 web 服务)
+ -org.apache(文件夹下面是关于上面规范的部分实现。Tomcat 本质上就是 Jakarta EE 某些规范实现的合集)
+  -catalina(Tomcat核心代码，可以理解为一个servlet 容器)
+  -coyote(Tomcat核心代码，负责将网络请求转化后和 Catalina 进行通信)
+  -el(上面的 Jakarta EE 中 el 的实现)
+  -jasper(负责将jsp转为java代码)
+  -juli(日志相关的工具)
+  -naming(命名空间相关)
+  -tomcat(各种辅助工具，包括websocket的实现)
+
+================================================ ===================================================
+
+How Tomcat Works 一书中，把 Tomcat 简化为 Connector 和 Container。
+Connector负责接收Http请求（request），并将请求转发（adapter）给Container去处理（servletRequest），
+Container负责处理请求的内容，加载对应的Servlet，将请求的结果（servletResponse）通过适配器返回给Connector（response）。
+Connector最后将结果呈现给B端
