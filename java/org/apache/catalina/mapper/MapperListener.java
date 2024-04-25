@@ -33,6 +33,8 @@ import java.util.List;
  * @author Remy Maucherat
  * @author Costin Manolache
  */
+// 1、通过监听容器的AFTER_START_EVENT事件来对容器进行注册；
+// 2、通过监听容器的BEFORE_STOP_EVENT事件来完成对容器的取消注册。
 public class MapperListener extends LifecycleMBeanBase implements ContainerListener, LifecycleListener {
 
     private static final Log log = LogFactory.getLog(MapperListener.class);
@@ -82,21 +84,24 @@ public class MapperListener extends LifecycleMBeanBase implements ContainerListe
     public void startInternal() throws LifecycleException {
 
         setState(LifecycleState.STARTING);
-
+        // 1、engine容器不存在，则MapperListener也不需要启动
         Engine engine = service.getContainer();
         if (engine == null) {
             return;
         }
 
         /**mapper对象设置默认主机名称*/
+        // 2、查找默认主机，并设置到mapper的defaultHostName属性中
         findDefaultHost();
         /**
          * 递归为每一个容器对象添加mapperListener，
          * 这样所有的container的listener都指向了mapperListener
          * 好处就是只有一个mapper对象，可以把所有的映射全部保存下来（集中管理）
          */
+        // 3、对容器及下面的所有子容器添加事件监听器
         addListeners(engine);
         /**拿到servlet引擎的子容器数组，那不就是hosts吗*/
+        // 4、注册engine下面的host、context和wrapper，registerHost会注册host及下面的子容器
         Container[] conHosts = engine.findChildren();
         for (Container conHost : conHosts) {
             Host host = (Host) conHost;
@@ -253,14 +258,16 @@ public class MapperListener extends LifecycleMBeanBase implements ContainerListe
 
 
     // ------------------------------------------------------ Protected Methods
-
+    // 检查并设置mapper的defaultHostName属性
     private void findDefaultHost() {
-
         Engine engine = service.getContainer();
+        // 获取engine下面配置的defaultHost属性
         String defaultHost = engine.getDefaultHost();
 
         boolean found = false;
-
+        // 如果defaultHost属性不为空，则查找hosts下面的所有主机名及别名。
+        // 1. 找到了则设置到mapper的defaultHostName属性
+        // 2. 没找到则记录警告信息
         if (defaultHost != null && defaultHost.length() > 0) {
             Container[] containers = engine.findChildren();
 
@@ -296,11 +303,13 @@ public class MapperListener extends LifecycleMBeanBase implements ContainerListe
 
         String[] aliases = host.findAliases();
         /**先添加主机信息*/
+        // 往mapper中添加主机
         mapper.addHost(host.getName(), aliases, host);
 
         for (Container container : host.findChildren()) {
             if (container.getState().isAvailable()) {
                 /**再注册应用*/
+                // 注册context
                 registerContext((Context) container);
             }
         }
@@ -318,6 +327,7 @@ public class MapperListener extends LifecycleMBeanBase implements ContainerListe
     /**
      * Unregister host.
      */
+    // 对host进行取消注册操作，根据hostname来remove
     private void unregisterHost(Host host) {
 
         String hostname = host.getName();
@@ -337,6 +347,7 @@ public class MapperListener extends LifecycleMBeanBase implements ContainerListe
     /**
      * Unregister wrapper.
      */
+    // 对wrapper取消注册
     private void unregisterWrapper(Wrapper wrapper) {
 
         Context context = ((Context) wrapper.getParent());
@@ -350,7 +361,7 @@ public class MapperListener extends LifecycleMBeanBase implements ContainerListe
         String hostName = context.getParent().getName();
 
         String[] mappings = wrapper.findMappings();
-
+        // 一个wrapper可能有多个map地址，对每个地址都需要移除操作，所以这儿是一个循环
         for (String mapping : mappings) {
             mapper.removeWrapper(hostName, contextPath, version,  mapping);
         }
@@ -366,7 +377,7 @@ public class MapperListener extends LifecycleMBeanBase implements ContainerListe
      * Register context. 注册应用
      */
     private void registerContext(Context context) {
-
+        // contextPath如果为斜杠，则统一转换为空字符串
         String contextPath = context.getPath();
         if ("/".equals(contextPath)) {
             contextPath = "";
@@ -393,6 +404,7 @@ public class MapperListener extends LifecycleMBeanBase implements ContainerListe
         /**遍历应用下面的所有wrapper容器*/
         for (Container container : childWrappers) {
             /**填充wrappers映射*/
+            // 准备wrapper信息，以便后续插入mapper
             prepareWrapperMappingInfo(context, (Wrapper) container, wrappers);
             if(log.isDebugEnabled()) {
                 log.debug(sm.getString("mapperListener.registerWrapper",
@@ -401,6 +413,7 @@ public class MapperListener extends LifecycleMBeanBase implements ContainerListe
         }
 
         /**往mapper对象中添加contextVersion对象*/
+        // 将context添加到mapper
         mapper.addContextVersion(host.getName(), host, contextPath,
                 context.getWebappVersion(), context, welcomeFiles, resources,
                 wrappers);
@@ -415,6 +428,7 @@ public class MapperListener extends LifecycleMBeanBase implements ContainerListe
     /**
      * Unregister context.
      */
+    // 对context取消注册
     private void unregisterContext(Context context) {
 
         String contextPath = context.getPath();
@@ -428,7 +442,7 @@ public class MapperListener extends LifecycleMBeanBase implements ContainerListe
                 log.debug(sm.getString("mapperListener.pauseContext",
                         contextPath, service));
             }
-
+            // 暂停的context，不能从mapper中移除，只能在mapper暂停
             mapper.pauseContextVersion(context, hostName, contextPath,
                     context.getWebappVersion());
         } else {
@@ -436,7 +450,7 @@ public class MapperListener extends LifecycleMBeanBase implements ContainerListe
                 log.debug(sm.getString("mapperListener.unregisterContext",
                         contextPath, service));
             }
-
+            // 非暂停的context，需要从mapper中移除
             mapper.removeContextVersion(context, hostName, contextPath,
                     context.getWebappVersion());
         }
@@ -471,6 +485,8 @@ public class MapperListener extends LifecycleMBeanBase implements ContainerListe
      * mappings for this wrapper in this context.
      *
      */
+    // 用于准备注册到mapper的wrapper，这里mapper对于wrapper的支持是wrapper的包装对象WrapperMappingInfo
+    // 一个context可能有多个wrapper，所以wrappers是一个list
     private void prepareWrapperMappingInfo(Context context, Wrapper wrapper,List<WrapperMappingInfo> wrappers) {
         String wrapperName = wrapper.getName();
         boolean resourceOnly = context.isResourceOnlyServlet(wrapperName);
@@ -523,8 +539,10 @@ public class MapperListener extends LifecycleMBeanBase implements ContainerListe
      */
     private void addListeners(Container container) {
         /**添加容器监听器 {@link ContainerListener}*/
+        // 对当前容器添加容器监听器和生命周期监听器，也就是当前对象
         container.addContainerListener(this);
         /**添加生命周期监听器 {@link LifecycleListener}*/
+        // 对当前容器下的子容器执行addListeners操作
         container.addLifecycleListener(this);
         for (Container child : container.findChildren()) {
             addListeners(child);

@@ -68,42 +68,49 @@ public class OutputBuffer extends Writer {
 
     /**
      * The byte buffer.
+     * 字节缓冲区
      */
     private ByteBuffer bb;
 
 
     /**
      * The char buffer.
+     * 字符缓冲区
      */
     private final CharBuffer cb;
 
 
     /**
      * State of the output buffer.
+     * 输出缓冲区状态
      */
     private boolean initial = true;
 
 
     /**
      * Number of bytes written.
+     * 写入字节数
      */
     private long bytesWritten = 0;
 
 
     /**
      * Number of chars written.
+     * 写入字符数
      */
     private long charsWritten = 0;
 
 
     /**
      * Flag which indicates if the output buffer is closed.
+     * 是否关闭
      */
     private volatile boolean closed = false;
 
 
     /**
      * Do a flush on the next operation.
+     * 是否flush
      */
     private boolean doFlush = false;
 
@@ -116,12 +123,14 @@ public class OutputBuffer extends Writer {
 
     /**
      * Associated Coyote response.
+     * coyote response
      */
     private Response coyoteResponse;
 
 
     /**
      * Suspended flag. All output bytes will be swallowed if this is true.
+     * 是否暂停
      */
     private volatile boolean suspended = false;
 
@@ -149,6 +158,7 @@ public class OutputBuffer extends Writer {
      *
      * @param coyoteResponse Associated Coyote response
      */
+    // 设置Coyote response
     public void setResponse(Response coyoteResponse) {
         this.coyoteResponse = coyoteResponse;
     }
@@ -159,6 +169,7 @@ public class OutputBuffer extends Writer {
      *
      * @return suspended flag value
      */
+    // 返回是否暂停
     public boolean isSuspended() {
         return this.suspended;
     }
@@ -169,6 +180,7 @@ public class OutputBuffer extends Writer {
      *
      * @param suspended New suspended flag value
      */
+    // 设置是否暂停
     public void setSuspended(boolean suspended) {
         this.suspended = suspended;
     }
@@ -179,6 +191,7 @@ public class OutputBuffer extends Writer {
      *
      * @return closed flag value
      */
+    // 是否关闭
     public boolean isClosed() {
         return this.closed;
     }
@@ -189,6 +202,7 @@ public class OutputBuffer extends Writer {
     /**
      * Recycle the output buffer.
      */
+    // 回收
     public void recycle() {
 
         initial = true;
@@ -218,6 +232,7 @@ public class OutputBuffer extends Writer {
      *
      * @throws IOException An underlying IOException occurred
      */
+    // 关闭，先flush再close
     @Override
     public void close() throws IOException {
 
@@ -230,7 +245,9 @@ public class OutputBuffer extends Writer {
 
         // If there are chars, flush all of them to the byte buffer now as bytes are used to
         // calculate the content-length (if everything fits into the byte buffer, of course).
+        // 如果字符输出缓冲区有内容，则刷新字符输出缓冲区
         if (cb.remaining() > 0) {
+            // 刷新字符输出缓冲区
             flushCharBuffer();
         }
 
@@ -256,9 +273,10 @@ public class OutputBuffer extends Writer {
         // The request should have been completely read by the time the response
         // is closed. Further reads of the input a) are pointless and b) really
         // confuse AJP (bug 50189) so close the input buffer to prevent them.
+        // coyote request inputBuffer执行close
         Request req = (Request) coyoteResponse.getRequest().getNote(CoyoteAdapter.ADAPTER_NOTES);
         req.inputBuffer.close();
-
+        // coyote response outBuffer执行close
         coyoteResponse.action(ActionCode.CLOSE, null);
     }
 
@@ -268,6 +286,7 @@ public class OutputBuffer extends Writer {
      *
      * @throws IOException An underlying IOException occurred
      */
+    // 刷新字符输出缓冲区和字节输出缓冲区，并刷新coyote response
     @Override
     public void flush() throws IOException {
         doFlush(true);
@@ -280,6 +299,7 @@ public class OutputBuffer extends Writer {
      * @param realFlush <code>true</code> if this should also cause a real network flush
      * @throws IOException An underlying IOException occurred
      */
+    // 刷新字符输出缓冲区和字节输出缓冲区
     protected void doFlush(boolean realFlush) throws IOException {
 
         if (suspended) {
@@ -292,17 +312,20 @@ public class OutputBuffer extends Writer {
                 coyoteResponse.sendHeaders();
                 initial = false;
             }
+            // 如果字符输出缓冲区有内容，刷新字符输出缓冲区
             if (cb.remaining() > 0) {
                 flushCharBuffer();
             }
+            // 如果字节输出缓冲区有内容，刷新字节输出缓冲区
             if (bb.remaining() > 0) {
                 flushByteBuffer();
             }
         } finally {
             doFlush = false;
         }
-
+        // 如果realFlush为真，则执行coyote response flush
         if (realFlush) {
+            // 执行coyote response flush
             coyoteResponse.action(ActionCode.CLIENT_FLUSH, null);
             // If some exception occurred earlier, or if some IOE occurred
             // here, notify the servlet with an IOE
@@ -324,6 +347,7 @@ public class OutputBuffer extends Writer {
      *
      * @throws IOException An underlying IOException occurred
      */
+    // 写字节缓冲区到coyote response
     public void realWriteBytes(ByteBuffer buf) throws IOException {
 
         if (closed) {
@@ -334,9 +358,11 @@ public class OutputBuffer extends Writer {
         }
 
         // If we really have something to write
+        // buf.remaining() > 0说明字节缓冲区有需要写的内容
         if (buf.remaining() > 0) {
             // real write to the adapter
             try {
+                // 使用coyoteResponse写字节缓冲区
                 coyoteResponse.doWrite(buf);
             } catch (CloseNowException e) {
                 // Catch this sub-class as it requires specific handling.
@@ -357,34 +383,37 @@ public class OutputBuffer extends Writer {
     }
 
 
+    // 写字节数组，字节缓冲区空则直接写，否则先写字节输出缓冲区
     public void write(byte b[], int off, int len) throws IOException {
 
         if (suspended) {
             return;
         }
-
+        // 写字节数组，字节缓冲区空则直接写，否则先写字节输出缓冲区
         writeBytes(b, off, len);
 
     }
 
 
+    // 写字节缓冲区，字节缓冲区空则直接写，否则先写字节输出缓冲区
     public void write(ByteBuffer from) throws IOException {
 
         if (suspended) {
             return;
         }
-
+        // 写字节缓冲区，字节缓冲区空则直接写，否则先写字节输出缓冲区
         writeBytes(from);
 
     }
 
 
+    // 写字节数组，字节缓冲区空则直接写，否则先写字节输出缓冲区
     private void writeBytes(byte b[], int off, int len) throws IOException {
 
         if (closed) {
             return;
         }
-
+        // 写字节数组，字节缓冲区空则直接写，否则先写字节输出缓冲区
         append(b, off, len);
         bytesWritten += len;
 
@@ -396,13 +425,13 @@ public class OutputBuffer extends Writer {
 
     }
 
-
+    // 写字节缓冲区，字节缓冲区空则直接写，否则先写字节输出缓冲区
     private void writeBytes(ByteBuffer from) throws IOException {
 
         if (closed) {
             return;
         }
-
+        // 写字节缓冲区，字节缓冲区空则直接写，否则先写字节输出缓冲区
         append(from);
         bytesWritten += from.remaining();
 
@@ -414,17 +443,18 @@ public class OutputBuffer extends Writer {
 
     }
 
-
+    // 写字节，字节输出缓冲区满先刷新字节输出缓冲区，否则先写字节输出缓冲区
     public void writeByte(int b) throws IOException {
 
         if (suspended) {
             return;
         }
-
+        // 如果字节输出缓冲区满，刷新字节输出缓冲区
         if (isFull(bb)) {
+            // 刷新字节输出缓冲区
             flushByteBuffer();
         }
-
+        // 写字节到字节输出缓冲区
         transfer((byte) b, bb);
         bytesWritten++;
 
@@ -441,15 +471,23 @@ public class OutputBuffer extends Writer {
      *
      * @throws IOException An underlying IOException occurred
      */
+    // 写字符缓冲区
+    // 1、先写字节输出缓冲区；
+    // 2、如果待写字符缓冲区不空，刷新字节输出缓冲区；
+    // 3、如果字节输出缓冲区快满了则刷新字节输出缓冲区
     public void realWriteChars(CharBuffer from) throws IOException {
 
         while (from.remaining() > 0) {
+            // 先写到字节输出缓冲区
             conv.convert(from, bb);
+            // 如果字节输出缓冲区没有待写的内容
             if (bb.remaining() == 0) {
                 // Break out of the loop if more chars are needed to produce any output
                 break;
             }
+            // 如果字符缓冲区有待写内容，则刷新字节输出缓冲区
             if (from.remaining() > 0) {
+                // 刷新字节输出缓冲区
                 flushByteBuffer();
             } else if (conv.isUndeflow() && bb.limit() > bb.capacity() - 4) {
                 // Handle an edge case. There are no more chars to write at the
@@ -460,29 +498,33 @@ public class OutputBuffer extends Writer {
                 // prevent the bytes for the leftover char and the rest of the
                 // surrogate pair yet to be written from being lost.
                 // See TestOutputBuffer#testUtf8SurrogateBody()
+                // 如果字符缓冲区没有待写内容，并且字节输出缓冲区满了，则刷新字节输出缓冲区
                 flushByteBuffer();
             }
         }
 
     }
 
+    // 写字符，字符输出缓冲区满先刷新字符输出缓冲区，否则先写字符输出缓冲区
     @Override
     public void write(int c) throws IOException {
 
         if (suspended) {
             return;
         }
-
+        // 如果字符输出缓冲区满，刷新字符输出缓冲区
         if (isFull(cb)) {
+            // 刷新字符输出缓冲区
             flushCharBuffer();
         }
-
+        // 写字符到字符输出缓冲区
         transfer((char) c, cb);
         charsWritten++;
 
     }
 
 
+    // 写字符数组
     @Override
     public void write(char c[]) throws IOException {
 
@@ -495,13 +537,14 @@ public class OutputBuffer extends Writer {
     }
 
 
+    // 写字符数组
     @Override
     public void write(char c[], int off, int len) throws IOException {
 
         if (suspended) {
             return;
         }
-
+        // 写字符数组
         append(c, off, len);
         charsWritten += len;
 
@@ -511,6 +554,7 @@ public class OutputBuffer extends Writer {
     /**
      * Append a string to the buffer
      */
+    // 写字符串一部分
     @Override
     public void write(String s, int off, int len) throws IOException {
 
@@ -536,6 +580,7 @@ public class OutputBuffer extends Writer {
     }
 
 
+    // 写字符串
     @Override
     public void write(String s) throws IOException {
 
@@ -640,7 +685,7 @@ public class OutputBuffer extends Writer {
         initial = true;
     }
 
-
+    // 获取缓冲区容量
     public int getBufferSize() {
         return bb.capacity();
     }
@@ -650,7 +695,7 @@ public class OutputBuffer extends Writer {
      * All the non-blocking write state information is held in the Response so
      * it is visible / accessible to all the code that needs it.
      */
-
+    // 是否准备好输出
     public boolean isReady() {
         return coyoteResponse.isReady();
     }
@@ -677,15 +722,23 @@ public class OutputBuffer extends Writer {
      * @param len Length
      * @throws IOException Writing overflow data to the output channel failed
      */
+    // 写字节数组，字节缓冲区空则直接写，否则先写字节输出缓冲区
     public void append(byte src[], int off, int len) throws IOException {
+        // bb.remaining() == 0说明缓冲区没有内容要输出
         if (bb.remaining() == 0) {
             appendByteArray(src, off, len);
         } else {
+            // 先输出到缓冲区
             int n = transfer(src, off, len, bb);
+            // 更新待输出内容长度
             len = len - n;
+            // 更新待输出内容位置
             off = off + n;
+            // 如果还有待输出内容，缓冲区已满
             if (len > 0 && isFull(bb)) {
+                // 刷新缓冲区
                 flushByteBuffer();
+                // 继续写待输出内容
                 appendByteArray(src, off, len);
             }
         }
@@ -698,6 +751,9 @@ public class OutputBuffer extends Writer {
      * @param len Length
      * @throws IOException Writing overflow data to the output channel failed
      */
+    // 写字符数组
+    // 如果待写字符数组长度小于字符输出缓冲区剩余空间，则先写字符输出缓冲区
+    // 如果待写字符数组长度小于字符输出缓冲区容量，则先写字符输出缓冲区，再刷新，再写字符缓冲区
     public void append(char src[], int off, int len) throws IOException {
         // if we have limit and we're below
         if(len <= cb.capacity() - cb.limit()) {
@@ -716,21 +772,24 @@ public class OutputBuffer extends Writer {
                flush the output buffer and then write the data directly.
                We can't avoid 2 writes, but we can write more on the second
             */
+            // 先写字符输出缓冲区
             int n = transfer(src, off, len, cb);
-
+            // 刷新字符输出缓冲区
             flushCharBuffer();
-
+            // 再写字符输出缓冲区
             transfer(src, off + n, len - n, cb);
         } else {
             // long write - flush the buffer and write the rest
             // directly from source
+            // 刷新字符缓冲区
             flushCharBuffer();
-
+            // 使用字节输出缓冲区输出
             realWriteChars(CharBuffer.wrap(src, off, len));
         }
     }
 
 
+    // 写字节缓冲区，字节缓冲区空则直接写，否则先写字节输出缓冲区
     public void append(ByteBuffer from) throws IOException {
         if (bb.remaining() == 0) {
             appendByteBuffer(from);
@@ -743,23 +802,29 @@ public class OutputBuffer extends Writer {
         }
     }
 
+    // 直接写字节数组，先写字节缓冲区到coyote response，再写字节输出缓冲区
     private void appendByteArray(byte src[], int off, int len) throws IOException {
         if (len == 0) {
             return;
         }
 
         int limit = bb.capacity();
+        // 如果待输出的内容大于缓冲区容量
         while (len > limit) {
+            // 直接写要输出的内容，避免拷贝到输出缓冲区再写输出缓冲区
             realWriteBytes(ByteBuffer.wrap(src, off, limit));
+            // 更新待输出内容长度
             len = len - limit;
+            // 更新待输出内容位置
             off = off + limit;
         }
-
+        // 如果待输出内容小于缓冲区容量，则先输出到缓冲区
         if (len > 0) {
             transfer(src, off, len, bb);
         }
     }
 
+    // 直接写字节缓冲区，先写字节缓冲区到coyote response，再写字节输出缓冲区
     private void appendByteBuffer(ByteBuffer from) throws IOException {
         if (from.remaining() == 0) {
             return;
@@ -779,13 +844,19 @@ public class OutputBuffer extends Writer {
         }
     }
 
+    // 刷新字节输出缓冲区
     private void flushByteBuffer() throws IOException {
+        // 写字节输出缓冲区
         realWriteBytes(bb.slice());
+        // 清空字节输出缓冲区
         clear(bb);
     }
 
+    // 刷新字符输出缓冲区
     private void flushCharBuffer() throws IOException {
+        // 写字符输出缓冲区
         realWriteChars(cb.slice());
+        // 清空字符输出缓冲区
         clear(cb);
     }
 

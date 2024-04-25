@@ -37,6 +37,7 @@ public abstract class AbstractProcessorLight implements Processor {
     private Set<DispatchType> dispatches = new CopyOnWriteArraySet<>();
 
 
+    // 根据不同条件，分别处理，其中重要的处理是调用dispatch或者service方法
     @Override
     public SocketState process(SocketWrapperBase<?> socketWrapper, SocketEvent status)
             throws IOException {
@@ -185,7 +186,7 @@ public abstract class AbstractProcessorLight implements Processor {
      * Uses currently include Servlet 3.0 Async and HTTP upgrade connections.
      * Further uses may be added in the future. These will typically start as
      * HTTP requests.
-     *
+     * 处理非标准HTTP模式下的正在处理中的请求，这是在Servlet3.0 Async和HTTP升级连接用到的
      * @param status The event to process
      *
      * @return The state the caller should put the socket in when this method

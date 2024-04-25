@@ -141,7 +141,9 @@ public class IdentityInputFilter implements InputFilter, ApplicationBufferHandle
 
     @Override
     public long end() throws IOException {
-
+        // 根据还有剩余的数据需要处理，如果是负值说明请求读取了下一个的请求数据，需要修复
+        // 如果remaning大于0则说明还有些数据没有读到，则会继续读取
+        // 缓冲区读取请求是按照请求行请求头请求体以此读取，然后是下一个请求行请求头请求体
         final boolean maxSwallowSizeExceeded = (maxSwallowSize > -1 && remaining > maxSwallowSize);
         long swallowed = 0;
 

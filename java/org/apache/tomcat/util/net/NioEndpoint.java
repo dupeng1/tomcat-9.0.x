@@ -483,6 +483,7 @@ public class NioEndpoint extends AbstractJsseEndpoint<NioChannel,SocketChannel> 
                 channel = nioChannels.pop();
             }
             if (channel == null) {
+                // 创建socket输入输出缓冲区
                 SocketBufferHandler bufhandler = new SocketBufferHandler(
                     socketProperties.getAppReadBufSize(),
                     socketProperties.getAppWriteBufSize(),
@@ -493,7 +494,7 @@ public class NioEndpoint extends AbstractJsseEndpoint<NioChannel,SocketChannel> 
                     channel = new NioChannel(bufhandler);
                 }
             }
-            /**创建一个Nio套接字包装器*/
+            /**创建一个Nio套接字包装器，有socket通道，socket输入输出缓冲区*/
             NioSocketWrapper newWrapper = new NioSocketWrapper(channel, this);
             channel.reset(socket, newWrapper);
             connections.put(socket, newWrapper);
@@ -1225,6 +1226,7 @@ public class NioEndpoint extends AbstractJsseEndpoint<NioChannel,SocketChannel> 
         }
 
 
+        // 读入socket通道数据到字节数组
         @Override
         public int read(boolean block, byte[] b, int off, int len) throws IOException {
             int nRead = populateReadBuffer(b, off, len);
@@ -1254,8 +1256,25 @@ public class NioEndpoint extends AbstractJsseEndpoint<NioChannel,SocketChannel> 
         }
 
 
+        // 读入socket通道数据到字节缓冲区
+        // 首先尝试从socketBufferHandler.readBuffer读
+        // 1、如果socketBufferHandler.readBuffer有数据，把数据填充到to
+        //
+        // 2、如果socketBufferHandler.readBuffer没有数据可读，且to的可写空间大于
+        // socketBufferHandler.readBuffer的容量，则直接从socket通道中读取，设置
+        // 该次读取的最大值limit为socket buffer大小
+        //
+        // 3、如果socketBufferHandler.readBuffer没有数据可读，且to的可写空间小于
+        // socketBufferHandler.readBuffer的容量，则先从socket通道读入socketBufferHandler.readBuffer
+        // (因为此时如果socketBufferHandler.readBuffer容量大于to的可写空间，可以一次从os读取更多数据)
+        // 然后再从socketBufferHandler.readBuffer填充到to
+        // （此时填充的是剩余可写空间，这样socketBufferHandler.readBuffer也会剩余一些，当to读取完毕时，
+        // 再调用fill方法将socketBufferHandler.readBuffer剩余的数据填充到to，不需要去socket通道内读，
+        // 本质是减少os读）
         @Override
         public int read(boolean block, ByteBuffer to) throws IOException {
+            // 1、先从tomcat底层socket buffer缓冲区读，
+            // 如果buffer缓冲区还有未读的buffer则不需要到底层os读缓冲区
             int nRead = populateReadBuffer(to);
             if (nRead > 0) {
                 return nRead;
@@ -1270,8 +1289,10 @@ public class NioEndpoint extends AbstractJsseEndpoint<NioChannel,SocketChannel> 
 
             // The socket read buffer capacity is socket.appReadBufSize
             int limit = socketBufferHandler.getReadBuffer().capacity();
+            // 如果to的可写空间大于socketBufferHandler.readBuffer的容量
             if (to.remaining() >= limit) {
                 to.limit(to.position() + limit);
+                // socket通道直接读入to
                 nRead = fillReadBuffer(block, to);
                 if (log.isDebugEnabled()) {
                     log.debug("Socket: [" + this + "], Read direct from socket: [" + nRead + "]");
@@ -1279,6 +1300,7 @@ public class NioEndpoint extends AbstractJsseEndpoint<NioChannel,SocketChannel> 
                 updateLastRead();
             } else {
                 // Fill the read buffer as best we can.
+                // 如果to的可写空间小于socketBufferHandler.readBuffer的容量
                 nRead = fillReadBuffer(block);
                 if (log.isDebugEnabled()) {
                     log.debug("Socket: [" + this + "], Read into buffer: [" + nRead + "]");
@@ -1333,12 +1355,16 @@ public class NioEndpoint extends AbstractJsseEndpoint<NioChannel,SocketChannel> 
             }
         }
 
+        // 从socket通道内读数据，有阻塞模式和非阻塞模式
+        // 非阻塞模式会调用socket的初始包装类NioChannel.read方法，
+        //  NioChannel.read调用SocketChannel.read，此处是真正从通道里读数据
         private int fillReadBuffer(boolean block) throws IOException {
             socketBufferHandler.configureReadBufferForWrite();
             return fillReadBuffer(block, socketBufferHandler.getReadBuffer());
         }
 
 
+        // 从socket通道读取数据
         private int fillReadBuffer(boolean block, ByteBuffer buffer) throws IOException {
             int n = 0;
             if (getSocket() == NioChannel.CLOSED_NIO_CHANNEL) {

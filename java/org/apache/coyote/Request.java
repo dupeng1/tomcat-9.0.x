@@ -55,6 +55,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * 使用钩子机制将处理委托给模块。这个类不是为用户代码设计的——它由tomcat内部使用，
  * 以最有效的方式处理请求。用户(servlet)可以使用facade访问信息，facade提供了请求的高级视图。
  *
+ * 请求属性值都是MessageBytes类型
  * @author James Duncan Davidson [duncan@eng.sun.com]
  * @author James Todd [gonzo@eng.sun.com]
  * @author Jason Hunter [jch@eng.sun.com]
@@ -102,6 +103,7 @@ public final class Request {
     private final MessageBytes remoteHostMB = MessageBytes.newInstance();
     private final MessageBytes localAddrMB = MessageBytes.newInstance();
 
+    // 请求头
     private final MimeHeaders headers = new MimeHeaders();
     private final Map<String,String> trailerFields = new HashMap<>();
 

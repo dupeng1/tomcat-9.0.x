@@ -33,7 +33,7 @@ public class CoyoteReader extends BufferedReader {
     private static final int MAX_LINE_LENGTH = 4096;
 
     // ----------------------------------------------------- Instance Variables
-
+    // 输入缓冲区
     protected InputBuffer ib;
 
 
@@ -82,35 +82,38 @@ public class CoyoteReader extends BufferedReader {
         ib.close();
     }
 
-
+    // 读取字符
     @Override
     public int read()
         throws IOException {
+        // 委托catalina的InputBuffer读取
         return ib.read();
     }
 
-
+    // 读取字符到cbuf，最多读满cbuf
     @Override
     public int read(char[] cbuf)
         throws IOException {
+        // 委托catalina的InputBuffer读取
         return ib.read(cbuf, 0, cbuf.length);
     }
 
-
+    // 读取字符到cbuf，off处最多len个
     @Override
     public int read(char[] cbuf, int off, int len)
         throws IOException {
+        // 委托catalina的InputBuffer读取
         return ib.read(cbuf, off, len);
     }
 
-
+    // 跳过n个字符
     @Override
     public long skip(long n)
         throws IOException {
         return ib.skip(n);
     }
 
-
+    // 是否可以非阻塞读取
     @Override
     public boolean ready()
         throws IOException {

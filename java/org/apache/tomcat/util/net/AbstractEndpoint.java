@@ -1220,6 +1220,7 @@ public abstract class AbstractEndpoint<S,U> {
                     System.out.println("------》 创建了一个SocketProcessor -- "+((NioEndpoint.SocketProcessor)sc));
                 }
             } else {
+                // 不为null调用reset
                 sc.reset(socketWrapper, event);
             }
             /**取出线程池（tomcat内部自定义的），执行SocketProcessor*/

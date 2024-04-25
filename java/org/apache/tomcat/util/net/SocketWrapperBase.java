@@ -375,6 +375,7 @@ public abstract class SocketWrapperBase<E> {
     }
 
 
+    // 从读缓冲区socketBufferHandler.readBuffer到缓冲区to
     protected int populateReadBuffer(ByteBuffer to) {
         // Is there enough data in the read buffer to satisfy this request?
         // Copy what data there is in the read buffer to the byte array

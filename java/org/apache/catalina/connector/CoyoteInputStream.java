@@ -38,6 +38,7 @@ public class CoyoteInputStream extends ServletInputStream {
     protected static final StringManager sm = StringManager.getManager(CoyoteInputStream.class);
 
 
+    // 输入缓冲区
     protected InputBuffer ib;
 
 
@@ -62,7 +63,7 @@ public class CoyoteInputStream extends ServletInputStream {
         throw new CloneNotSupportedException();
     }
 
-
+    // 读取字节
     @Override
     public int read() throws IOException {
         checkNonBlockingRead();
@@ -81,10 +82,12 @@ public class CoyoteInputStream extends ServletInputStream {
                 }
             }
         } else {
+            // 委托catalina的InputBuffer读取
             return ib.readByte();
         }
     }
 
+    // 可读数量
     @Override
     public int available() throws IOException {
 
@@ -101,16 +104,19 @@ public class CoyoteInputStream extends ServletInputStream {
                 }
             }
         } else {
+            // 委托catalina的InputBuffer获取可读数量
             return ib.available();
         }
     }
 
+    // 读取字节到b，最多读满b
     @Override
     public int read(final byte[] b) throws IOException {
         return read(b, 0, b.length);
     }
 
 
+    // 读取字节到b，off处最多len个
     @Override
     public int read(final byte[] b, final int off, final int len) throws IOException {
         checkNonBlockingRead();
@@ -129,6 +135,7 @@ public class CoyoteInputStream extends ServletInputStream {
                 }
             }
         } else {
+            // 委托catalina的InputBuffer读取
             return ib.read(b, off, len);
         }
     }
@@ -145,6 +152,7 @@ public class CoyoteInputStream extends ServletInputStream {
      *         the end of the stream is reached
      * @throws IOException if an input or output exception has occurred
      */
+    // 读取字节到字节缓冲区
     public int read(final ByteBuffer b) throws IOException {
         checkNonBlockingRead();
 
@@ -161,6 +169,7 @@ public class CoyoteInputStream extends ServletInputStream {
                 }
             }
         } else {
+            // 委托catalina的InputBuffer读取
             return ib.read(b);
         }
     }
@@ -190,12 +199,14 @@ public class CoyoteInputStream extends ServletInputStream {
         }
     }
 
+    // 是否读到结束位置
     @Override
     public boolean isFinished() {
         return ib.isFinished();
     }
 
 
+    // 是否可以非阻塞读取
     @Override
     public boolean isReady() {
         return ib.isReady();

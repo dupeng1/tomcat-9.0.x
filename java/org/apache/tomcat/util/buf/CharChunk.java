@@ -534,8 +534,8 @@ public final class CharChunk extends AbstractChunk implements CharSequence {
     }
 
 
-    /**
-     * Returns true if the buffer starts with the specified string.
+    /**true if the buffer starts with the specified string.
+     * Returns
      *
      * @param s the string
      * @param pos The position

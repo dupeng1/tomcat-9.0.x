@@ -734,6 +734,7 @@ public final class Response {
         }
     }
 
+    // 是否准备好输出
     public boolean isReady() {
         if (listener == null) {
             if (log.isDebugEnabled()) {

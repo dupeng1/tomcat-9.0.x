@@ -73,7 +73,7 @@ public class CoyoteOutputStream extends ServletOutputStream {
 
     // --------------------------------------------------- OutputStream Methods
 
-
+    // 写字节到输出流
     @Override
     public void write(int i) throws IOException {
         boolean nonBlocking = checkNonBlockingWrite();
@@ -83,13 +83,13 @@ public class CoyoteOutputStream extends ServletOutputStream {
         }
     }
 
-
+    // 写字节数组到输出流
     @Override
     public void write(byte[] b) throws IOException {
         write(b, 0, b.length);
     }
 
-
+    // 写字节数组到输出流
     @Override
     public void write(byte[] b, int off, int len) throws IOException {
         boolean nonBlocking = checkNonBlockingWrite();
@@ -99,7 +99,7 @@ public class CoyoteOutputStream extends ServletOutputStream {
         }
     }
 
-
+    // 写字节缓冲区到输出流
     public void write(ByteBuffer from) throws IOException {
         boolean nonBlocking = checkNonBlockingWrite();
         ob.write(from);
@@ -112,6 +112,7 @@ public class CoyoteOutputStream extends ServletOutputStream {
     /**
      * Will send the buffer to the client.
      */
+    // 刷新输出流
     @Override
     public void flush() throws IOException {
         boolean nonBlocking = checkNonBlockingWrite();
@@ -151,12 +152,13 @@ public class CoyoteOutputStream extends ServletOutputStream {
         ob.checkRegisterForWrite();
     }
 
-
+    // 关闭输出流
     @Override
     public void close() throws IOException {
         ob.close();
     }
 
+    // 输出流是否准备好
     @Override
     public boolean isReady() {
         return ob.isReady();

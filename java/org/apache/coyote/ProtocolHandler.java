@@ -39,6 +39,7 @@ public interface ProtocolHandler {
      * Return the adapter associated with the protocol handler.
      * @return the adapter
      */
+    // 获取适配器
     public Adapter getAdapter();
 
 
@@ -47,6 +48,7 @@ public interface ProtocolHandler {
      *
      * @param adapter The adapter to associate
      */
+    // 设置适配器
     public void setAdapter(Adapter adapter);
 
 
@@ -55,6 +57,7 @@ public interface ProtocolHandler {
      * 执行器(线程容器，也就是线程池)，提供对底层线程池的访问。
      * @return The executor used to process requests
      */
+    // 获取执行线程池
     public Executor getExecutor();
 
 
@@ -62,6 +65,7 @@ public interface ProtocolHandler {
      * Set the optional executor that will be used by the connector.
      * @param executor the executor
      */
+    // 设置执行线程池
     public void setExecutor(Executor executor);
 
 

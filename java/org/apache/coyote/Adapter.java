@@ -25,6 +25,7 @@ import org.apache.tomcat.util.net.SocketEvent;
  * @author Remy Maucherat
  * @see ProtocolHandler
  */
+// coyote适配器
 public interface Adapter {
 
     /**

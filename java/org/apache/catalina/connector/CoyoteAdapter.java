@@ -57,6 +57,19 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * @author Craig R. McClanahan
  * @author Remy Maucherat
  */
+// CoyoteAdapter创建是在Connector#initInternal中完成的
+// 如果把tomcat内核最高抽象程度模块化，可以看成连接器Connector和容器Container组成
+// 连接器负责HTTP请求接收及响应，生成请求对象及响应对象并交由容器处理
+// 而容器则根据请求路径找到响应的servlet进行处理
+// 请求响应对象从连接器传送到容器需要一个桥梁，这个桥梁正是CoyoteAdapter
+
+// 1、根据connector的（coyoto请求和响应对象）创建Servlet请求和响应对象
+// 2、转换请求参数并完成请求映射
+// 2.1、请求URI解码，初始化请求的路径参数
+// 2.2、请求URI是否合法，如果非法，则返回响应码400
+// 2.3、请求映射，映射结果保存到Request.mappingData，请求映射处理最终会根据URI定位到一个有效的Wrapper
+// 3、得到当前Engine的第一个Valve并执行，以完成客户端请求处理
+// 4、如果为同步请求，flush并关闭请求输入流、响应输出流
 public class CoyoteAdapter implements Adapter {
 
     private static final Log log = LogFactory.getLog(CoyoteAdapter.class);
@@ -109,6 +122,7 @@ public class CoyoteAdapter implements Adapter {
 
     /**
      * The string manager for this package.
+     * 负责日志的国际化
      */
     protected static final StringManager sm = StringManager.getManager(CoyoteAdapter.class);
 
@@ -316,18 +330,22 @@ public class CoyoteAdapter implements Adapter {
 
         if (request == null) {
             // Create objects
+            // 创建Servlet Request
             request = connector.createRequest();
             /**将coyote的request设置到catalina的request对象中的变量coyoteRequest对象上（套娃）*/
             request.setCoyoteRequest(req);
+            // 创建Servlet Response
             response = connector.createResponse();
             /**将coyote的response设置到catalina的response对象中的变量coyoteResponse对象上（套娃）*/
             response.setCoyoteResponse(res);
 
             // Link objects
+            // Servlet Request和Servlet Response互相引用
             request.setResponse(response);
             response.setRequest(request);
 
             // Set as notes
+            // 设置到notes数组的notes[1]元素
             req.setNote(ADAPTER_NOTES, request);
             res.setNote(ADAPTER_NOTES, response);
 
@@ -594,12 +612,14 @@ public class CoyoteAdapter implements Adapter {
      * @throws ServletException If the supported methods of the target servlet
      *                          cannot be determined
      */
+    // 包含uri参数解析，host映射
     protected boolean postParseRequest(org.apache.coyote.Request req, Request request,
             org.apache.coyote.Response res, Response response) throws IOException, ServletException {
 
         // If the processor has set the scheme (AJP does this, HTTP does this if
         // SSL is enabled) use this to set the secure flag as well. If the
         // processor hasn't set it, use the settings from the connector
+        // req.schemeMB和secure设置
         if (req.scheme().isNull()) {
             // Use connector scheme and secure configuration, (defaults to
             // "http" and false respectively)
@@ -612,6 +632,7 @@ public class CoyoteAdapter implements Adapter {
 
         // At this point the Host header has been processed.
         // Override if the proxyPort/proxyHost are set
+        // proxyPort/proxyHost设置
         String proxyName = connector.getProxyName();
         int proxyPort = connector.getProxyPort();
         if (proxyPort != 0) {
@@ -637,6 +658,7 @@ public class CoyoteAdapter implements Adapter {
         MessageBytes undecodedURI = req.requestURI();
 
         // Check for ping OPTIONS * request
+        // 请求uriMB
         if (undecodedURI.equals("*")) {
             if (req.method().equalsIgnoreCase("OPTIONS")) {
                 StringBuilder allow = new StringBuilder();
@@ -653,7 +675,7 @@ public class CoyoteAdapter implements Adapter {
                 response.sendError(400, "Invalid URI");
             }
         }
-
+        // decodedUriMB设置
         MessageBytes decodedURI = req.decodedURI();
 
         if (undecodedURI.getType() == MessageBytes.T_BYTES) {
@@ -661,16 +683,19 @@ public class CoyoteAdapter implements Adapter {
             decodedURI.duplicate(undecodedURI);
 
             // Parse (and strip out) the path parameters 解析路径参数
+            // 例如：/servelt-demo;www=3，会修改req.decodedURI()为/servelt-demo，同时添加参数www，参数值为3
             parsePathParameters(req, request);
 
             // URI decoding
             // %xx decoding of the URL
             try {
+                // 解码req.decodedURI，%xx decoding
                 req.getURLDecoder().convert(decodedURI.getByteChunk(), connector.getEncodedSolidusHandlingInternal());
             } catch (IOException ioe) {
                 response.sendError(400, "Invalid URI: " + ioe.getMessage());
             }
             // Normalization
+            // 检测URI是否合法，如果非法则返回响应码400
             if (normalize(req.decodedURI())) {
                 // Character decoding
                 convertURI(decodedURI, request);
@@ -703,6 +728,7 @@ public class CoyoteAdapter implements Adapter {
         }
 
         // Request mapping.
+        // serverName获取
         MessageBytes serverName;
         if (connector.getUseIPVHosts()) {
             serverName = req.localName();
@@ -716,8 +742,11 @@ public class CoyoteAdapter implements Adapter {
 
         // Version for the second mapping loop and
         // Context that we expect to get for that version
+        // 需要匹配的版本号，初始化为空，也就是匹配所有版本
         String version = null;
+        // 用于暂存按照会话ID匹配的Context，初始化为空
         Context versionContext = null;
+        // 是否需要映射，用于控制映射匹配循环，初始化为true，通过一个循环来处理映射匹配，因为只通过一次处理并不能确保得到正确的结果
         boolean mapRequired = true;
 
         if (response.isError()) {
@@ -734,6 +763,7 @@ public class CoyoteAdapter implements Adapter {
              * 然后填充request的mappingData属性
              * {@link org.apache.catalina.mapper.Mapper#map(MessageBytes, MessageBytes, String, MappingData)}
              */
+            // 初始version为空，所以第一次执行时，所有匹配该请求路径的Context都会返回，此时MappingData.contexts中存放了所有结果，而MappingData.context中存放了最新版本
             connector.getService().getMapper().map(serverName, decodedURI,version, request.getMappingData());
 
             // If there is no context at this point, either this is a 404
@@ -754,6 +784,7 @@ public class CoyoteAdapter implements Adapter {
             // (if any). Need to do this before we redirect in case we need to
             // include the session id in the redirect
             String sessionID;
+            // 尝试从URL获取请求会话ID
             if (request.getServletContext().getEffectiveSessionTrackingModes()
                     .contains(SessionTrackingMode.URL)) {
 
@@ -768,6 +799,7 @@ public class CoyoteAdapter implements Adapter {
             }
 
             // Look for session ID in cookies and SSL session 在cookie和SSL会话中查找会话ID
+            // 尝试从Cookies获取请求会话ID
             try {
                 parseSessionCookiesId(request);
             } catch (IllegalArgumentException e) {
@@ -778,14 +810,20 @@ public class CoyoteAdapter implements Adapter {
                 }
                 return true;
             }
+            // 尝试从SSl会话获取请求会话ID
             parseSessionSslId(request);
-
+            // 获取会话ID
             sessionID = request.getRequestedSessionId();
-
+            // mapRequired设置为false
             mapRequired = false;
             if (version != null && request.getContext() == versionContext) {
+                // 如果version不为空，且MappingData.context与versionContext相等，即表明当前匹配结果是会话查询的结果
+                // 当前步骤仅用于重复匹配，第一次执行时，version和versionContext均为空
+                // 重复执行时，已经指定了版本，可得到唯一的匹配结果
                 // We got the version that we asked for. That is it.
             } else {
+                // version为空 或 versionContext不等于请求中的Context
+                // 按照会话标识，从MappingData.contexts查找包含请求会话ID的最新版本的Context
                 version = null;
                 versionContext = null;
 
@@ -796,16 +834,22 @@ public class CoyoteAdapter implements Adapter {
                     // Find the context associated with the session
                     for (int i = contexts.length; i > 0; i--) {
                         Context ctxt = contexts[i - 1];
+                        // 有匹配的结果
                         if (ctxt.getManager().findSession(sessionID) != null) {
                             // We found a context. Is it the one that has
                             // already been mapped?
+                            // 查找结果与请求中的Context不相等
                             if (!ctxt.equals(request.getMappingData().context)) {
                                 // Set version so second time through mapping
                                 // the correct context is found
+                                // version等于查询结果的版本
                                 version = ctxt.getWebappVersion();
+                                // versionContext等于查询结果
                                 versionContext = ctxt;
                                 // Reset mapping
+                                // 重置请求匹配结果
                                 request.getMappingData().recycle();
+                                // mapRequired设置为true
                                 mapRequired = true;
                                 // Recycle cookies and session info in case the
                                 // correct context is configured with different
@@ -818,18 +862,20 @@ public class CoyoteAdapter implements Adapter {
                     }
                 }
             }
-
+            // mapRequired为false，且请求的context处于暂停
             if (!mapRequired && request.getContext().getPaused()) {
                 // Found a matching context but it is paused. Mapping data will
                 // be wrong since some Wrappers may not be registered at this
                 // point.
                 try {
+                    // 等待1秒钟
                     Thread.sleep(1000);
                 } catch (InterruptedException e) {
                     // Should never happen
                 }
                 // Reset mapping
                 request.getMappingData().recycle();
+                // mapRequired置为true
                 mapRequired = true;
             }
         }

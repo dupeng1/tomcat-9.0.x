@@ -82,7 +82,7 @@ public class CoyoteWriter extends PrintWriter {
 
     // --------------------------------------------------------- Writer Methods
 
-
+    // 刷新输出writer
     @Override
     public void flush() {
 
@@ -98,7 +98,7 @@ public class CoyoteWriter extends PrintWriter {
 
     }
 
-
+    // 关闭输出writer
     @Override
     public void close() {
 
@@ -120,7 +120,7 @@ public class CoyoteWriter extends PrintWriter {
         return error;
     }
 
-
+    // 写字符到输出writer
     @Override
     public void write(int c) {
 
@@ -136,7 +136,7 @@ public class CoyoteWriter extends PrintWriter {
 
     }
 
-
+    // 写字符到输出writer
     @Override
     public void write(char buf[], int off, int len) {
 
@@ -152,13 +152,13 @@ public class CoyoteWriter extends PrintWriter {
 
     }
 
-
+    // 写字符到输出writer
     @Override
     public void write(char buf[]) {
         write(buf, 0, buf.length);
     }
 
-
+    // 写字符到输出writer
     @Override
     public void write(String s, int off, int len) {
 
@@ -174,7 +174,7 @@ public class CoyoteWriter extends PrintWriter {
 
     }
 
-
+    // 写字符串到输出writer
     @Override
     public void write(String s) {
         write(s, 0, s.length());

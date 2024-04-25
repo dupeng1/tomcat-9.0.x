@@ -24,6 +24,7 @@ import org.apache.tomcat.util.net.ApplicationBufferHandler;
  * This class is only for internal use in the protocol implementation. All
  * reading from Tomcat (or adapter) should be done using Request.doRead().
  */
+// tomcat内部的Request缓冲区，套接字输入缓冲填装，提供一种缓冲的模式从socket中读取字节流
 public interface InputBuffer {
 
     /**

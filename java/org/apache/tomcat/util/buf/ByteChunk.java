@@ -65,6 +65,7 @@ import java.nio.charset.StandardCharsets;
  * @author Costin Manolache
  * @author Remy Maucherat
  */
+// 一个操作缓冲的工具，
 public final class ByteChunk extends AbstractChunk {
 
     private static final long serialVersionUID = 1L;

@@ -140,6 +140,7 @@ public abstract class AbstractProtocol<S> implements ProtocolHandler,MBeanRegist
     /**
      * The adapter provides the link between the ProtocolHandler and the
      * connector.
+     * 协议处理器和连接器之间的连接
      */
     protected Adapter adapter;
     @Override
@@ -765,7 +766,11 @@ public abstract class AbstractProtocol<S> implements ProtocolHandler,MBeanRegist
 
     // ------------------------------------------- Connection handler base class
 
-    /**内部类，负责处理请求连接*/
+    /**
+     * 内部类，负责处理请求连接，用于为链接选择一个合适的Processor实现进行处理
+     * 为了提升性能，它针对每个有效的链接都会缓存其Processor对象
+     * 当链接关闭时，其Processor对象还会被释放到一个回收队列，这样后续链接可以重置并重复利用，以减少对象构造
+     * */
     protected static class ConnectionHandler<S> implements AbstractEndpoint.Handler<S> {
 
         /**

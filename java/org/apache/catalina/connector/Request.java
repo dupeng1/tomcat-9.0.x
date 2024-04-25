@@ -235,12 +235,14 @@ public class Request implements HttpServletRequest {
 
     /**
      * Using stream flag.
+     * 调用了getInputStream方法就置为true
      */
     protected boolean usingInputStream = false;
 
 
     /**
      * Using reader flag.
+     * 调用了getReader方法就置为true
      */
     protected boolean usingReader = false;
 
@@ -253,6 +255,7 @@ public class Request implements HttpServletRequest {
 
     /**
      * Request parameters parsed flag.
+     * 请求参数是否解析
      */
     protected boolean parametersParsed = false;
 
@@ -260,6 +263,7 @@ public class Request implements HttpServletRequest {
     /**
      * Cookie headers parsed flag. Indicates that the cookie headers have been
      * parsed into ServerCookies.
+     * cookie是否解析
      */
     protected boolean cookiesParsed = false;
 
@@ -717,6 +721,7 @@ public class Request implements HttpServletRequest {
      * @return the created input stream
      * @exception IOException if an input/output error occurs
      */
+    // 创建输入流，InputBuffer的包装类
     public ServletInputStream createInputStream()
             throws IOException {
         if (inputStream == null) {
@@ -745,6 +750,7 @@ public class Request implements HttpServletRequest {
      *
      * @param name Name of the note to be returned
      */
+    // 获取notes中name的值
     public Object getNote(String name) {
         return notes.get(name);
     }
@@ -756,6 +762,7 @@ public class Request implements HttpServletRequest {
      *
      * @param name Name of the note to be removed
      */
+    // 删除notes中name的值
     public void removeNote(String name) {
         notes.remove(name);
     }
@@ -766,6 +773,7 @@ public class Request implements HttpServletRequest {
      *
      * @param port The server port
      */
+    // 设置本地端口，服务器端口
     public void setLocalPort(int port) {
         localPort = port;
     }
@@ -777,6 +785,7 @@ public class Request implements HttpServletRequest {
      * @param name Name to which the object should be bound
      * @param value Object to be bound to the specified name
      */
+    // 设置notes中name的值
     public void setNote(String name, Object value) {
         notes.put(name, value);
     }
@@ -787,6 +796,7 @@ public class Request implements HttpServletRequest {
      *
      * @param remoteAddr The remote IP address
      */
+    // 设置客户端的ip
     public void setRemoteAddr(String remoteAddr) {
         this.remoteAddr = remoteAddr;
     }
@@ -798,6 +808,7 @@ public class Request implements HttpServletRequest {
      *
      * @param remoteHost The remote host name
      */
+    // 设置客户端的名称
     public void setRemoteHost(String remoteHost) {
         this.remoteHost = remoteHost;
     }
@@ -809,6 +820,7 @@ public class Request implements HttpServletRequest {
      *
      * @param secure The new isSecure value
      */
+    // 设置是否安全
     public void setSecure(boolean secure) {
         this.secure = secure;
     }
@@ -819,6 +831,7 @@ public class Request implements HttpServletRequest {
      *
      * @param port The server port
      */
+    // 设置服务器端口，和localPort相同了
     public void setServerPort(int port) {
         coyoteRequest.setServerPort(port);
     }
@@ -832,20 +845,22 @@ public class Request implements HttpServletRequest {
      *
      * @param name Name of the request attribute to return
      */
+    // 获取属性
     @Override
     public Object getAttribute(String name) {
         // Special attributes
+        // 从本地specialAttributes获取
         SpecialAttributeAdapter adapter = specialAttributes.get(name);
         if (adapter != null) {
             return adapter.get(this, name);
         }
-
+        // 从本地attributes获取
         Object attr = attributes.get(name);
 
         if (attr != null) {
             return attr;
         }
-
+        // 从coyoteRequest获取
         attr = coyoteRequest.getAttribute(name);
         if (attr != null) {
             return attr;
@@ -890,7 +905,7 @@ public class Request implements HttpServletRequest {
         return attr;
     }
 
-
+    // 从coyoteRequest获取内容长度
     @Override
     public long getContentLengthLong() {
         return coyoteRequest.getContentLengthLong();
@@ -925,6 +940,7 @@ public class Request implements HttpServletRequest {
      *
      * @return the attribute names enumeration
      */
+    // 获取属性名称
     @Override
     public Enumeration<String> getAttributeNames() {
         if (isSecure() && !sslAttributesParsed) {
@@ -932,6 +948,7 @@ public class Request implements HttpServletRequest {
         }
         // Take a copy to prevent ConcurrentModificationExceptions if used to
         // remove attributes
+        // 返回attributes的key集合
         Set<String> names = new HashSet<>(attributes.keySet());
         return Collections.enumeration(names);
     }
@@ -940,6 +957,7 @@ public class Request implements HttpServletRequest {
     /**
      * @return the character encoding for this Request.
      */
+    // 返回字符编码
     @Override
     public String getCharacterEncoding() {
         String characterEncoding = coyoteRequest.getCharacterEncoding();
@@ -955,7 +973,7 @@ public class Request implements HttpServletRequest {
         return null;
     }
 
-
+    // 获取字节到字符编码，默认ISO_8859_1
     private Charset getCharset() {
         Charset charset = null;
         try {
@@ -986,6 +1004,7 @@ public class Request implements HttpServletRequest {
     /**
      * @return the content length for this Request.
      */
+    // 获取内容长度
     @Override
     public int getContentLength() {
         return coyoteRequest.getContentLength();
@@ -995,6 +1014,7 @@ public class Request implements HttpServletRequest {
     /**
      * @return the content type for this Request.
      */
+    // 获取内容类型
     @Override
     public String getContentType() {
         return coyoteRequest.getContentType();
@@ -1006,6 +1026,7 @@ public class Request implements HttpServletRequest {
      *
      * @param contentType The content type
      */
+    // 设置内容类型
     public void setContentType(String contentType) {
         coyoteRequest.setContentType(contentType);
     }
@@ -1020,6 +1041,7 @@ public class Request implements HttpServletRequest {
      *  already been called for this request
      * @exception IOException if an input/output error occurs
      */
+    // 获取输入流
     @Override
     public ServletInputStream getInputStream() throws IOException {
 
@@ -1042,6 +1064,7 @@ public class Request implements HttpServletRequest {
      * that was encountered.  If the request did not specify a preferred
      * language, the server's default Locale is returned.
      */
+    // 获取local
     @Override
     public Locale getLocale() {
 
@@ -1063,6 +1086,7 @@ public class Request implements HttpServletRequest {
      * headers that were encountered.  If the request did not specify a
      * preferred language, the server's default Locale is returned.
      */
+    // 获取所有local
     @Override
     public Enumeration<Locale> getLocales() {
 
@@ -1087,6 +1111,7 @@ public class Request implements HttpServletRequest {
      *
      * @param name Name of the desired request parameter
      */
+    // 获取请求参数
     @Override
     public String getParameter(String name) {
 
@@ -1109,6 +1134,7 @@ public class Request implements HttpServletRequest {
      * @return A <code>Map</code> containing parameter names as keys
      *  and parameter values as map values.
      */
+    // 获取请求参数
     @Override
     public Map<String, String[]> getParameterMap() {
 
@@ -1133,6 +1159,7 @@ public class Request implements HttpServletRequest {
     /**
      * @return the names of all defined request parameters for this request.
      */
+    // 获取请求参数名
     @Override
     public Enumeration<String> getParameterNames() {
 
@@ -1151,6 +1178,7 @@ public class Request implements HttpServletRequest {
      *
      * @param name Name of the desired request parameter
      */
+    // 获取所有请求参数值
     @Override
     public String[] getParameterValues(String name) {
 
@@ -1166,6 +1194,7 @@ public class Request implements HttpServletRequest {
     /**
      * @return the protocol and version used to make this Request.
      */
+    // 获取协议
     @Override
     public String getProtocol() {
         return coyoteRequest.protocol().toString();
@@ -1182,6 +1211,7 @@ public class Request implements HttpServletRequest {
      *  has already been called for this request
      * @exception IOException if an input/output error occurs
      */
+    // 获取reader
     @Override
     public BufferedReader getReader() throws IOException {
 
@@ -1249,6 +1279,7 @@ public class Request implements HttpServletRequest {
     /**
      * @return the remote IP address making this Request.
      */
+    // 获取远端地址，最终从底层socket获取，例如：192.168.11.2
     @Override
     public String getRemoteAddr() {
         if (remoteAddr == null) {
@@ -1262,6 +1293,7 @@ public class Request implements HttpServletRequest {
     /**
      * @return the connection peer IP address making this Request.
      */
+    // 获取对方ip，最终从底层socket获取，例如：192.168.11.2
     public String getPeerAddr() {
         if (peerAddr == null) {
             coyoteRequest.action(ActionCode.REQ_PEER_ADDR_ATTRIBUTE, coyoteRequest);
@@ -1274,6 +1306,7 @@ public class Request implements HttpServletRequest {
     /**
      * @return the remote host name making this Request.
      */
+    // 获取远端主机名称，最终从底层socket获取，例如：192.168.11.2
     @Override
     public String getRemoteHost() {
         if (remoteHost == null) {
@@ -1291,6 +1324,7 @@ public class Request implements HttpServletRequest {
      * @return the Internet Protocol (IP) source port of the client
      * or last proxy that sent the request.
      */
+    // 获取远端端口，最终从底层socket获取，例如：57260
     @Override
     public int getRemotePort(){
         if (remotePort == -1) {
@@ -1304,6 +1338,7 @@ public class Request implements HttpServletRequest {
      * @return the host name of the Internet Protocol (IP) interface on
      * which the request was received.
      */
+    // 获取本地主机名称，最终从底层socket获取，例如：localhost.sangfor.com.cn
     @Override
     public String getLocalName(){
         if (localName == null) {
@@ -1317,6 +1352,7 @@ public class Request implements HttpServletRequest {
      * @return the Internet Protocol (IP) address of the interface on
      * which the request  was received.
      */
+    // 获取本地地址，最终从底层socket获取，例如：127.0.0.1
     @Override
     public String getLocalAddr(){
         if (localAddr == null) {
@@ -1331,6 +1367,7 @@ public class Request implements HttpServletRequest {
      * @return the Internet Protocol (IP) port number of the interface
      * on which the request was received.
      */
+    // 获取本地端口，最终从底层socket获取，例如：8080
     @Override
     public int getLocalPort(){
         if (localPort == -1){
@@ -1346,6 +1383,7 @@ public class Request implements HttpServletRequest {
      *
      * @param path Path of the resource to be wrapped
      */
+    // 获取RequestDispatcher，包装了特定路径的资源
     @Override
     public RequestDispatcher getRequestDispatcher(String path) {
 
@@ -1429,6 +1467,7 @@ public class Request implements HttpServletRequest {
     /**
      * @return the scheme used to make this Request.
      */
+    // 获取schema，从底层socket获取，例如：http
     @Override
     public String getScheme() {
         return coyoteRequest.scheme().toString();
@@ -1438,6 +1477,7 @@ public class Request implements HttpServletRequest {
     /**
      * @return the server name responding to this Request.
      */
+    // 获取服务器名称，例如：127.0.0.1
     @Override
     public String getServerName() {
         return coyoteRequest.serverName().toString();
@@ -1447,6 +1487,7 @@ public class Request implements HttpServletRequest {
     /**
      * @return the server port responding to this Request.
      */
+    // 获取服务器端口，例如：8080
     @Override
     public int getServerPort() {
         return coyoteRequest.getServerPort();
@@ -1456,6 +1497,7 @@ public class Request implements HttpServletRequest {
     /**
      * @return <code>true</code> if this request was received on a secure connection.
      */
+    // 获取是否安全
     @Override
     public boolean isSecure() {
         return secure;
@@ -1467,6 +1509,7 @@ public class Request implements HttpServletRequest {
      *
      * @param name Name of the request attribute to remove
      */
+    // 移除属性
     @Override
     public void removeAttribute(String name) {
         // Remove the specified attribute
@@ -1492,6 +1535,7 @@ public class Request implements HttpServletRequest {
      * @param name Name of the request attribute to set
      * @param value The associated value
      */
+    // 设置属性
     @Override
     public void setAttribute(String name, Object value) {
 
@@ -1638,6 +1682,7 @@ public class Request implements HttpServletRequest {
      *
      * @since Servlet 2.3
      */
+    // 设置请求体的编码，
     @Override
     public void setCharacterEncoding(String enc) throws UnsupportedEncodingException {
 
@@ -1652,7 +1697,7 @@ public class Request implements HttpServletRequest {
         coyoteRequest.setCharset(charset);
     }
 
-
+    // 设置servlet上下文
     @Override
     public ServletContext getServletContext() {
         return getContext().getServletContext();
@@ -1787,6 +1832,7 @@ public class Request implements HttpServletRequest {
      *
      * @param cookie The new cookie
      */
+    // 添加cookie
     public void addCookie(Cookie cookie) {
 
         if (!cookiesConverted) {
@@ -1815,6 +1861,7 @@ public class Request implements HttpServletRequest {
      *
      * @param locale The new preferred Locale
      */
+    // 添加local
     public void addLocale(Locale locale) {
         locales.add(locale);
     }
@@ -1823,6 +1870,7 @@ public class Request implements HttpServletRequest {
     /**
      * Clear the collection of Cookies associated with this Request.
      */
+    // 清除cookie
     public void clearCookies() {
         cookiesParsed = true;
         cookiesConverted = true;
@@ -1833,6 +1881,7 @@ public class Request implements HttpServletRequest {
     /**
      * Clear the collection of Locales associated with this Request.
      */
+    // 清除local
     public void clearLocales() {
         locales.clear();
     }
@@ -2217,6 +2266,7 @@ public class Request implements HttpServletRequest {
      *
      * @return the server cookies
      */
+    // 获取cookie
     public ServerCookies getServerCookies() {
         parseCookies();
         return coyoteRequest.getCookies();
@@ -2258,6 +2308,7 @@ public class Request implements HttpServletRequest {
      * @param name Name of the requested header
      * @return the header value
      */
+    // 一个请求头有多个值，这里只返回第一个
     @Override
     public String getHeader(String name) {
         return coyoteRequest.getHeader(name);
@@ -2271,6 +2322,7 @@ public class Request implements HttpServletRequest {
      * @param name Name of the requested header
      * @return the enumeration with the header values
      */
+    // 一个请求头有多个值，这里返回所有
     @Override
     public Enumeration<String> getHeaders(String name) {
         return coyoteRequest.getMimeHeaders().values(name);
@@ -2280,6 +2332,7 @@ public class Request implements HttpServletRequest {
     /**
      * @return the names of all headers received with this request.
      */
+    // 获取所有请求头名字
     @Override
     public Enumeration<String> getHeaderNames() {
         return coyoteRequest.getMimeHeaders().names();
@@ -2296,6 +2349,7 @@ public class Request implements HttpServletRequest {
      * @exception IllegalArgumentException if the specified header value
      *  cannot be converted to an integer
      */
+    // 获取整形请求头的值
     @Override
     public int getIntHeader(String name) {
 
@@ -2317,6 +2371,7 @@ public class Request implements HttpServletRequest {
     /**
      * @return the HTTP request method used in this Request.
      */
+    // 获取请求方法
     @Override
     public String getMethod() {
         return coyoteRequest.method().toString();
@@ -2326,6 +2381,7 @@ public class Request implements HttpServletRequest {
     /**
      * @return the path information associated with this Request.
      */
+    // 获取请求路径
     @Override
     public String getPathInfo() {
         return mappingData.pathInfo.toString();
@@ -2355,6 +2411,7 @@ public class Request implements HttpServletRequest {
     /**
      * @return the query string associated with this request.
      */
+    // 获取请求路径的查询字符串
     @Override
     public String getQueryString() {
         return coyoteRequest.queryString().toString();
@@ -2398,12 +2455,13 @@ public class Request implements HttpServletRequest {
     /**
      * @return the request URI for this request.
      */
+    // 获取请求URI
     @Override
     public String getRequestURI() {
         return coyoteRequest.requestURI().toString();
     }
 
-
+    // 获取请求URL
     @Override
     public StringBuffer getRequestURL() {
         return RequestUtil.getRequestURL(this);
@@ -2414,6 +2472,7 @@ public class Request implements HttpServletRequest {
      * @return the portion of the request URI used to select the servlet
      * that will process this request.
      */
+    // 获取servlet路径
     @Override
     public String getServletPath() {
         return mappingData.wrapperPath.toString();
@@ -2424,6 +2483,7 @@ public class Request implements HttpServletRequest {
      * @return the session associated with this Request, creating one
      * if necessary.
      */
+    // 获取session
     @Override
     public HttpSession getSession() {
         Session session = doGetSession(true);
@@ -2441,6 +2501,7 @@ public class Request implements HttpServletRequest {
      *
      * @param create Create a new session if one does not exist
      */
+    // 获取session
     @Override
     public HttpSession getSession(boolean create) {
         Session session = doGetSession(create);
@@ -2712,6 +2773,7 @@ public class Request implements HttpServletRequest {
      * @return <code>true</code> if an attempt has been made to read the request
      *         body and all of the request body has been read.
      */
+    // 请求体是否读取结束
     public boolean isFinished() {
         return coyoteRequest.isFinished();
     }
@@ -3161,6 +3223,7 @@ public class Request implements HttpServletRequest {
     /**
      * Parse request parameters.
      */
+    // 解析参数
     protected void parseParameters() {
 
         parametersParsed = true;
@@ -3173,6 +3236,7 @@ public class Request implements HttpServletRequest {
 
             // getCharacterEncoding() may have been overridden to search for
             // hidden form field containing request encoding
+            // 获取请求字节到字符编码
             Charset charset = getCharset();
 
             boolean useBodyEncodingForURI = connector.getUseBodyEncodingForURI();
@@ -3189,7 +3253,7 @@ public class Request implements HttpServletRequest {
                 success = true;
                 return;
             }
-
+            // 获取内容类型
             String contentType = getContentType();
             if (contentType == null) {
                 contentType = "";
@@ -3200,18 +3264,19 @@ public class Request implements HttpServletRequest {
             } else {
                 contentType = contentType.trim();
             }
-
+            // 会把内容分成多个部分，每个部分都支持不同的格式，优点是支持文件上传，缺点是占用字节多。
+            // 每个part支持不同的content-Type，例如：text/plain、image/jpeg
             if ("multipart/form-data".equals(contentType)) {
                 parseParts(false);
                 success = true;
                 return;
             }
-
+            // 非post不解析
             if( !getConnector().isParseBodyMethod(getMethod()) ) {
                 success = true;
                 return;
             }
-
+            // 一种轻型表单，只支持普通文本，优点是占用字节少
             if (!("application/x-www-form-urlencoded".equals(contentType))) {
                 success = true;
                 return;
@@ -3303,6 +3368,7 @@ public class Request implements HttpServletRequest {
      * @return the bytes count that has been read
      * @throws IOException if an IO exception occurred
      */
+    // 读取请求体字节，最多读取len个
     protected int readPostBody(byte[] body, int len)
             throws IOException {
 
@@ -3325,6 +3391,7 @@ public class Request implements HttpServletRequest {
      * @return the post body as a bytes array
      * @throws IOException if an IO exception occurred
      */
+    // 读取请求体字节
     protected byte[] readChunkedPostBody() throws IOException {
         ByteChunk body = new ByteChunk();
 

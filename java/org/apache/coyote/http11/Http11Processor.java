@@ -53,17 +53,20 @@ public class Http11Processor extends AbstractProcessor {
     private static final StringManager sm = StringManager.getManager(Http11Processor.class);
 
 
+    // 协议处理器
     private final AbstractHttp11Protocol<?> protocol;
 
 
     /**
      * Input.
+     * 输入buffer，包含了Request和Header
      */
     private final Http11InputBuffer inputBuffer;
 
 
     /**
      * Output.
+     * 输出buffer，包含了Response
      */
     private final Http11OutputBuffer outputBuffer;
 
@@ -128,6 +131,8 @@ public class Http11Processor extends AbstractProcessor {
     private SendfileDataBase sendfileData = null;
 
 
+    // 初始化了request、response、httpParser、inputBuffer、outputBuffer，
+    // 以及一些 InputFilter 和 OutputFilter，这些是处理 http 协议必需的
     public Http11Processor(AbstractHttp11Protocol<?> protocol, Adapter adapter) {
         super(adapter);
         this.protocol = protocol;
@@ -143,24 +148,29 @@ public class Http11Processor extends AbstractProcessor {
         response.setOutputBuffer(outputBuffer);
 
         // Create and add the identity filters.
+        // 添加identity filter
         inputBuffer.addFilter(new IdentityInputFilter(protocol.getMaxSwallowSize()));
         outputBuffer.addFilter(new IdentityOutputFilter());
 
         // Create and add the chunked filters.
+        // 添加chunked filter
         inputBuffer.addFilter(new ChunkedInputFilter(protocol.getMaxTrailerSize(),
                 protocol.getAllowedTrailerHeadersInternal(), protocol.getMaxExtensionSize(),
                 protocol.getMaxSwallowSize()));
         outputBuffer.addFilter(new ChunkedOutputFilter());
 
         // Create and add the void filters.
+        // 添加void filter
         inputBuffer.addFilter(new VoidInputFilter());
         outputBuffer.addFilter(new VoidOutputFilter());
 
         // Create and add buffered input filter
+        // 添加buffered filter
         inputBuffer.addFilter(new BufferedInputFilter());
 
         // Create and add the gzip filters.
         //inputBuffer.addFilter(new GzipInputFilter());
+        // 添加gzip filter
         outputBuffer.addFilter(new GzipOutputFilter());
 
         pluggableFilterIndex = inputBuffer.getFilters().length;
@@ -235,10 +245,11 @@ public class Http11Processor extends AbstractProcessor {
         rp.setStage(org.apache.coyote.Constants.STAGE_PARSE);
 
         // Setting up the I/O
+        // 执行一下初步工作socketWrapper
         setSocketWrapper(socketWrapper);
 
         // Flags
-        keepAlive = true; // 默认长连接
+        keepAlive = true; // 默认长连接，就是说客户端socket连接到服务器之后，告诉服务器这个socket不要关了
         openSocket = false;
         readComplete = true;
         boolean keptAlive = false;
@@ -249,6 +260,7 @@ public class Http11Processor extends AbstractProcessor {
 
             // Parsing the request header
             try {
+                // inputBuffer.parseRequestLine(用来处理请求行，例如：GET /index HTTP1.1)
                 if (!inputBuffer.parseRequestLine(keptAlive, protocol.getConnectionTimeout(),
                         protocol.getKeepAliveTimeout())) {
                     if (inputBuffer.getParsingRequestLinePhase() == -1) {
@@ -261,10 +273,13 @@ public class Http11Processor extends AbstractProcessor {
                 // Process the Protocol component of the request line
                 // Need to know if this is an HTTP 0.9 request before trying to
                 // parse headers. 处理请求行的协议组件在尝试解析报头之前需要知道这是否是HTTP 0.9请求。
+                // 对请求进行初步处理，针对请求头里的一些属性加入一些InputFilter到Http11InputBuffer里。
+                // 比如解析请求头里的host，transfer-encoding，content-length等
                 prepareRequestProtocol();
 
                 if (protocol.isPaused()) {
                     // 503 - Service unavailable
+                    // 设置response状态为503
                     response.setStatus(503);
                     setErrorState(ErrorState.CLOSE_CLEAN, null);
                 } else {
@@ -307,11 +322,13 @@ public class Http11Processor extends AbstractProcessor {
                     }
                 }
                 // 400 - Bad Request
+                // 设置response状态为400
                 response.setStatus(400);
                 setErrorState(ErrorState.CLOSE_CLEAN, t);
             }
 
             // Has an upgrade been requested?
+            // 在请求头里找connection参数，是否为upgrade，如果是则进入HTTP升级步骤
             if (isConnectionToken(request.getMimeHeaders(), "upgrade")) {
                 // Check the protocol
                 String requestedProtocol = request.getHeader("Upgrade");
@@ -405,6 +422,7 @@ public class Http11Processor extends AbstractProcessor {
                 // If this is an async request then the request ends when it has
                 // been completed. The AsyncContext is responsible for calling
                 // endRequest() in that case.
+                // 结束请求
                 endRequest();
             }
             rp.setStage(org.apache.coyote.Constants.STAGE_ENDOUTPUT);
@@ -467,6 +485,7 @@ public class Http11Processor extends AbstractProcessor {
     @Override
     protected final void setSocketWrapper(SocketWrapperBase<?> socketWrapper) {
         super.setSocketWrapper(socketWrapper);
+        // Http11InputBuffer内部创建一个读缓冲区
         inputBuffer.init(socketWrapper);
         outputBuffer.init(socketWrapper);
     }
@@ -603,6 +622,7 @@ public class Http11Processor extends AbstractProcessor {
         }
 
         if (http11) {
+            // 检查expect
             MessageBytes expectMB = headers.getValue("expect");
             if (expectMB != null && !expectMB.isNull()) {
                 if (expectMB.toString().trim().equalsIgnoreCase("100-continue")) {
@@ -618,6 +638,7 @@ public class Http11Processor extends AbstractProcessor {
         // Check user-agent header
         Pattern restrictedUserAgents = protocol.getRestrictedUserAgentsPattern();
         if (restrictedUserAgents != null && (http11 || keepAlive)) {
+            // 检查user-agent
             MessageBytes userAgentValueMB = headers.getValue("user-agent");
             // Check in the restricted list, and adjust the http11
             // and keepAlive flags accordingly
@@ -632,6 +653,7 @@ public class Http11Processor extends AbstractProcessor {
 
 
         // Check host header
+        // 检查host
         MessageBytes hostValueMB = null;
         try {
             hostValueMB = headers.getUniqueValue("host");
@@ -645,6 +667,7 @@ public class Http11Processor extends AbstractProcessor {
 
         // Check for an absolute-URI less the query string which has already
         // been removed during the parsing of the request line
+        // 检查uri是否以http开头
         ByteChunk uriBC = request.requestURI().getByteChunk();
         byte[] uriB = uriBC.getBytes();
         if (uriBC.startsWithIgnoreCase("http", 0)) {
@@ -739,6 +762,7 @@ public class Http11Processor extends AbstractProcessor {
 
         // Validate the characters in the URI. %nn decoding will be checked at
         // the point of decoding.
+        // 检查uri字符
         for (int i = uriBC.getStart(); i < uriBC.getEnd(); i++) {
             if (!httpParser.isAbsolutePathRelaxed(uriB[i])) {
                 badRequest("http11processor.request.invalidUri");
@@ -747,6 +771,8 @@ public class Http11Processor extends AbstractProcessor {
         }
 
         // Input filter setup
+        // 创建InputFilter数组,BufferedFilter、VoidInputFilter、ChunkedInputFilter、IdentityInputFilter
+        // 实现类用来处理请求数据的请求体
         InputFilter[] inputFilters = inputBuffer.getFilters();
 
         // Parse transfer-encoding header
@@ -768,6 +794,7 @@ public class Http11Processor extends AbstractProcessor {
         }
 
         // Parse content-length header
+        // 获取contentLength
         long contentLength = -1;
         try {
             contentLength = request.getContentLengthLong();
@@ -787,6 +814,7 @@ public class Http11Processor extends AbstractProcessor {
                 request.setContentLength(-1);
                 keepAlive = false;
             } else {
+                // inputBuffer的Filter是inputFilters[Constants.IDENTITY_FILTER]
                 inputBuffer.addActiveFilter(inputFilters[Constants.IDENTITY_FILTER]);
                 contentDelimitation = true;
             }
@@ -799,6 +827,8 @@ public class Http11Processor extends AbstractProcessor {
             // If there's no content length
             // (broken HTTP/1.0 or HTTP/1.1), assume
             // the client is not broken and didn't send a body
+            // 如果contentLength>=0则contentDelimitation是true，inputBuffer是inputFilters[0]
+            // 如果contentLength<0，inputBuffer是inputFilters[2]
             inputBuffer.addActiveFilter(inputFilters[Constants.VOID_FILTER]);
             contentDelimitation = true;
         }
@@ -1065,6 +1095,7 @@ public class Http11Processor extends AbstractProcessor {
     }
 
 
+    // 把Http11OutputBuffer里的数据写回给客户端
     @Override
     protected boolean flushBufferedWrite() throws IOException {
         if (outputBuffer.hasDataToWrite()) {

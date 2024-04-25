@@ -148,18 +148,21 @@ public class Response implements HttpServletResponse {
 
     /**
      * The associated output buffer.
+     * 输出缓冲区，输出使用了该对象，该对象关联了Coyote response
      */
     protected final OutputBuffer outputBuffer;
 
 
     /**
      * The associated output stream.
+     * 输出流
      */
     protected CoyoteOutputStream outputStream;
 
 
     /**
      * The associated writer.
+     * 输出writer
      */
     protected CoyoteWriter writer;
 
@@ -184,12 +187,14 @@ public class Response implements HttpServletResponse {
 
     /**
      * Using output stream flag.
+     * 调用了getOutputStream方法就置为true
      */
     protected boolean usingOutputStream = false;
 
 
     /**
      * Using writer flag.
+     * 调用了getWriter方法就置为true
      */
     protected boolean usingWriter = false;
 
@@ -377,6 +382,7 @@ public class Response implements HttpServletResponse {
      *
      * @param suspended The new suspended flag value
      */
+    // 设置输出暂停，停止IO操作
     public void setSuspended(boolean suspended) {
         outputBuffer.setSuspended(suspended);
     }
@@ -387,6 +393,7 @@ public class Response implements HttpServletResponse {
      *
      * @return <code>true</code> if the response is suspended
      */
+    // 返回是否输出暂停
     public boolean isSuspended() {
         return outputBuffer.isSuspended();
     }
@@ -397,6 +404,7 @@ public class Response implements HttpServletResponse {
      *
      * @return <code>true</code> if the response has been closed
      */
+    // 返回是否关闭
     public boolean isClosed() {
         return outputBuffer.isClosed();
     }
@@ -438,6 +446,7 @@ public class Response implements HttpServletResponse {
      *
      * @exception IOException if an input/output error occurs
      */
+    // 结束输出
     public void finishResponse() throws IOException {
         // Writing leftover bytes
         outputBuffer.close();
@@ -447,6 +456,7 @@ public class Response implements HttpServletResponse {
     /**
      * @return the content length that was set or calculated for this Response.
      */
+    // 获取内容长度
     public int getContentLength() {
         return getCoyoteResponse().getContentLength();
     }
@@ -456,6 +466,7 @@ public class Response implements HttpServletResponse {
      * @return the content type that was set or calculated for this response,
      * or <code>null</code> if no content type was set.
      */
+    // 获取内容类型
     @Override
     public String getContentType() {
         return getCoyoteResponse().getContentType();
@@ -474,6 +485,7 @@ public class Response implements HttpServletResponse {
      *
      * @exception IOException if an input/output error occurs
      */
+    // 获取writer
     public PrintWriter getReporter() throws IOException {
         if (outputBuffer.isNew()) {
             outputBuffer.checkConverter();
@@ -495,6 +507,7 @@ public class Response implements HttpServletResponse {
      *
      * @exception IOException if an input/output error occurs
      */
+    // flush输出缓冲区，将缓冲区数据写入到输出流
     @Override
     public void flushBuffer() throws IOException {
         outputBuffer.flush();
@@ -504,6 +517,7 @@ public class Response implements HttpServletResponse {
     /**
      * @return the actual buffer size used for this Response.
      */
+    // 获取输出缓冲区容量
     @Override
     public int getBufferSize() {
         return outputBuffer.getBufferSize();
@@ -513,6 +527,7 @@ public class Response implements HttpServletResponse {
     /**
      * @return the character encoding used for this Response.
      */
+    // 获取字符编码
     @Override
     public String getCharacterEncoding() {
         String charset = getCoyoteResponse().getCharacterEncoding();
@@ -541,6 +556,7 @@ public class Response implements HttpServletResponse {
      *  already been called for this response
      * @exception IOException if an input/output error occurs
      */
+    // 获取输出流
     @Override
     public ServletOutputStream getOutputStream()
         throws IOException {
@@ -562,6 +578,7 @@ public class Response implements HttpServletResponse {
     /**
      * @return the Locale assigned to this response.
      */
+    // 获取local
     @Override
     public Locale getLocale() {
         return getCoyoteResponse().getLocale();
@@ -575,6 +592,7 @@ public class Response implements HttpServletResponse {
      *  already been called for this response
      * @exception IOException if an input/output error occurs
      */
+    // 获取writer
     @Override
     public PrintWriter getWriter()
         throws IOException {
@@ -614,6 +632,7 @@ public class Response implements HttpServletResponse {
      *
      * @return <code>true</code> if the response has been committed
      */
+    // 是否提交
     @Override
     public boolean isCommitted() {
         return getCoyoteResponse().isCommitted();
@@ -626,6 +645,7 @@ public class Response implements HttpServletResponse {
      * @exception IllegalStateException if this response has already
      *  been committed
      */
+    // 重置
     @Override
     public void reset() {
         // Ignore any call from an included servlet
@@ -647,6 +667,7 @@ public class Response implements HttpServletResponse {
      * @exception IllegalStateException if the response has already
      *  been committed
      */
+    // 重置输出缓冲区
     @Override
     public void resetBuffer() {
         resetBuffer(false);
@@ -664,6 +685,7 @@ public class Response implements HttpServletResponse {
      * @exception IllegalStateException if the response has already
      *  been committed
      */
+    // 重置输出缓冲区
     public void resetBuffer(boolean resetWriterStreamFlags) {
 
         if (isCommitted()) {
@@ -690,6 +712,7 @@ public class Response implements HttpServletResponse {
      * @exception IllegalStateException if this method is called after
      *  output has been committed for this response
      */
+    // 设置输出缓冲区容量
     @Override
     public void setBufferSize(int size) {
 
@@ -708,13 +731,14 @@ public class Response implements HttpServletResponse {
      *
      * @param length The new content length
      */
+    // 设置内容长度
     @Override
     public void setContentLength(int length) {
 
         setContentLengthLong(length);
     }
 
-
+    // 设置内容长度
     @Override
     public void setContentLengthLong(long length) {
         if (isCommitted()) {
@@ -735,6 +759,7 @@ public class Response implements HttpServletResponse {
      *
      * @param type The new content type
      */
+    // 设置内容类型
     @Override
     public void setContentType(String type) {
 
@@ -798,6 +823,7 @@ public class Response implements HttpServletResponse {
      *
      * @param charset String containing the name of the character encoding.
      */
+    // 设置内容编码
     @Override
     public void setCharacterEncoding(String charset) {
 
@@ -836,6 +862,7 @@ public class Response implements HttpServletResponse {
      *
      * @param locale The new locale
      */
+    // 设置local
     @Override
     public void setLocale(Locale locale) {
 
@@ -887,12 +914,14 @@ public class Response implements HttpServletResponse {
     // --------------------------------------------------- HttpResponse Methods
 
 
+    // 获取请求头
     @Override
     public String getHeader(String name) {
         return getCoyoteResponse().getMimeHeaders().getHeader(name);
     }
 
 
+    // 获取请求头名字
     @Override
     public Collection<String> getHeaderNames() {
         MimeHeaders headers = getCoyoteResponse().getMimeHeaders();
@@ -906,6 +935,7 @@ public class Response implements HttpServletResponse {
     }
 
 
+    // 获取请求头
     @Override
     public Collection<String> getHeaders(String name) {
         Enumeration<String> enumeration = getCoyoteResponse().getMimeHeaders().values(name);
@@ -940,6 +970,7 @@ public class Response implements HttpServletResponse {
      *
      * @param cookie Cookie to be added
      */
+    // 添加cookie
     @Override
     public void addCookie(final Cookie cookie) {
 
@@ -964,6 +995,7 @@ public class Response implements HttpServletResponse {
      *
      * @param cookie The new session cookie to add the response
      */
+    // 添加cookie
     public void addSessionCookieInternal(final Cookie cookie) {
         if (isCommitted()) {
             return;
@@ -1035,12 +1067,14 @@ public class Response implements HttpServletResponse {
      * @param name Name of the header to set
      * @param value Value to be set
      */
+    // 添加请求头
     @Override
     public void addHeader(String name, String value) {
         addHeader(name, value, null);
     }
 
 
+    // 添加请求头
     private void addHeader(String name, String value, Charset charset) {
 
         if (name == null || name.length() == 0 || value == null) {
@@ -1333,6 +1367,7 @@ public class Response implements HttpServletResponse {
      *  already been committed
      * @exception IOException if an input/output error occurs
      */
+    // 重定向
     @Override
     public void sendRedirect(String location) throws IOException {
         sendRedirect(location, SC_FOUND);
@@ -1348,6 +1383,7 @@ public class Response implements HttpServletResponse {
      * @param status HTTP status code that will be sent
      * @throws IOException an IO exception occurred
      */
+    // 重定向
     public void sendRedirect(String location, int status) throws IOException {
         if (isCommitted()) {
             throw new IllegalStateException(sm.getString("coyoteResponse.sendRedirect.ise"));
@@ -1480,6 +1516,7 @@ public class Response implements HttpServletResponse {
      *
      * @param status The new HTTP status
      */
+    // 设置输出状态码
     @Override
     public void setStatus(int status) {
         setStatus(status, null);
@@ -1496,6 +1533,7 @@ public class Response implements HttpServletResponse {
      *  has been deprecated due to the ambiguous meaning of the message
      *  parameter.
      */
+    // 设置输出状态码
     @Override
     @Deprecated
     public void setStatus(int status, String message) {

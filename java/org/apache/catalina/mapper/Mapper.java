@@ -37,6 +37,14 @@ import java.util.concurrent.CopyOnWriteArrayList;
  * 映射关系最核心的、最重要的类。完成url与Host，Context，Wrapper映射关系的初始化、变更、存储及映射
  * @author Remy Maucherat
  */
+// Mapper作为uri映射到容器的工具，扮演的角色就是一个映射组件，它会缓存所有容器信息，同事提供映射规则，将一个uri按照映射规则映射到具体的Host、Context、Wrapper，并最终通过Wrapper找到逻辑处理单元
+// 1、Mapper组件主要的职责是负责Tomcat的请求路由，每个客户端请求到达Tomcat后，都将由Mapper路由到对应的处理逻辑（Servlet）上
+// 2、www.baidu.com/web1/index.html，请求路径分析出对应的层级：Host/Context/Wrapper
+// 3、对应的配置如下<Host name="www.baidu.com" appBase="webapps"><context path="web1"></context></Host>
+// 4、按照容器等级，首先Mapper组件包含了N个Host容器的引用，然后每个Host会有N个Cotext容器的引用，最后每个Context容器包含N个Wrapper
+// 容器的引用例如，如果使用Mapper组件查找tomcat.apache. org/tomcat-7.0-doc/search，
+// 它首先会匹配名为tomcat.apache.org的Host，然后从中继续匹配名为tomcat-7.0-doc的Context，
+// 最后匹配名为search的Wrapper（Servlet）
 public final class Mapper {
 
     private static final Log log = LogFactory.getLog(Mapper.class);
@@ -687,6 +695,7 @@ public final class Mapper {
     public void map(MessageBytes host, MessageBytes uri, String version,
                     MappingData mappingData) throws IOException {
 
+        // 一般情况下，需要查找的Host名称为请求的serverName，但是如果没有指定Host名称，那么将使用默认Host名称
         if (host.isNull()) {
             String defaultHostName = this.defaultHostName;
             if (defaultHostName == null) {
@@ -806,6 +815,7 @@ public final class Mapper {
         }
 
         /**第二步：匹配context，基于uri找到context的位置*/
+        // 按照uri查找Mapper.Context最大可能匹配的位置pos
         int pos = find(contexts, uri);
         if (pos == -1) {
             return; // 找不到返回
@@ -820,6 +830,7 @@ public final class Mapper {
             /**基于pos位置找到webapps下面的具体应用*/
             context = contexts[pos];
             /**下面这个必须走，因为tomcat的webapps下面，要想访问应用，必须在url路径中带上应用的name*/
+            // 如果uri与MappedContext路径相等或者以MappedContext路径+“/”开头，均视为找到匹配的MappedContext
             if (uri.startsWith(context.name)) {
                 /**注意，这里的length是应用名称的长度，如果是重定向的uri则两者并不相等，走重定向的uri长度 - length = 1*/
                 length = context.name.length();
@@ -832,17 +843,20 @@ public final class Mapper {
                     break;
                 }
             }
+            // 去除uri最后一个“/”之后的部分
             if (lastSlash == -1) {
                 lastSlash = nthSlash(uri, contextList.nesting + 1);
             } else {
                 lastSlash = lastSlash(uri);
             }
             uri.setEnd(lastSlash);
+            // 按照uri查找Mapper.Context最大可能匹配的位置pos
             pos = find(contexts, uri);
         }
         uri.setEnd(uriEnd);
 
         if (!found) {
+            // 如果第0个Mapper.Context名称为空字符串，则context=contexts[0]
             if (contexts[0].name.equals("")) {
                 context = contexts[0];
             } else {
@@ -852,7 +866,9 @@ public final class Mapper {
         if (context == null) {
             return;
         }
-
+        // MappedContext存放了路径相同的所有版本的Context（ContextVersion），因此还需要对MappedContext版本进行处理，
+        // 如果指定了版本号，则返回版本号相等的ContextVersion，否则返回版本号最大的
+        // 最后将ContextVersion中维护的Context保存到MappingData
         /**设置request中的mappingData的contextPath的值*/
         mappingData.contextPath.setString(context.name);
 
@@ -898,6 +914,12 @@ public final class Mapper {
      * @throws IOException if the buffers are too small to hold the results of
      *                     the mapping.
      */
+    // 1、依据uri和Context路径计算MappedWrapper匹配路径，例如，如果Context路径为“/myapp”，uri为“/myapp/app1/index.jsp”，那么MappedWrapper的匹配路径为“/app1/index.jsp”；
+    // 如果uri为“/myapp”，那么MappedWrapper的匹配路径为“/"
+    // 2、先精确查找exactWrappers
+    // 3、如果未找到，然后再按照前缀查找wildcardWrappers，算法与MappedContext查找类似，逐步降低精度
+    // 4、如果未找到，然后按照扩展名查找extensionWrappers
+    // 5、如果未找到，则尝试匹配欢迎文件列表，主要用于我们输入的请求路径是一个目录而非文件的情况
     private final void internalMapWrapper(ContextVersion contextVersion,
                                           CharChunk path,
                                           MappingData mappingData) throws IOException {
@@ -1671,7 +1693,7 @@ public final class Mapper {
 
     // ------------------------------------------------------- Host Inner Class
 
-
+    // Mapper对Host提供对应的封装类
     protected static final class MappedHost extends MapElement<Host> {
 
         /**应用列表*/
@@ -1682,6 +1704,7 @@ public final class Mapper {
          * 因为一个Host，可能是真正的一个Host，也可能只是起了一个别名，而在Mapper中，两者都是MapperHost，
          * 只是真正的MapperHost的realHost是自身，而alias的MapperHost的realHost是其对应的真实的MapperHost
          */
+        // 真实Host封装对象
         private final MappedHost realHost;
 
         /**
@@ -1691,6 +1714,7 @@ public final class Mapper {
          * 所有注册的别名的MapperHost
          * 对于alias MapperHost，这个值为null。当一个 real MapperHost 没有alias的时候，这个值也为空
          */
+        // 当封装的是一个Host且存在缩写时，aliases即为其对应缩写的封装对象
         private final List<MappedHost> aliases;
 
         /**
@@ -1793,7 +1817,8 @@ public final class Mapper {
 
     // ---------------------------------------------------- Context Inner Class
 
-
+    // Mapper对Context提供对应的封装类
+    // 为了支持Context多版本，Mapper提供了ContextVersion，当注册一个Context时，MappedContext名称为Context的路径，并且通过一个ContextVersion列表保存所有版本的Context
     protected static final class MappedContext extends MapElement<Void> {
         /**一个MappedContext中可能又有多个ContextVersion，表示多个版本的context*/
         public volatile ContextVersion[] versions;
@@ -1805,6 +1830,9 @@ public final class Mapper {
     }
 
     /**应用版本，tomcat处理request过程中匹配映射数据非常重要的一个类*/
+    // ContextVersion保存了单个版本的Context，名称为具体的版本号
+    // ContextVersion保存了一个具体Context及其包含的Wrapper封装对象
+    // 包括默认Wrapper、精确匹配的Wrapper、通配符匹配的Wrapper、通过扩展名匹配的Wrapper
     protected static final class ContextVersion extends MapElement<Context> {
         /** context 的匹配路径*/
         public final String path;
@@ -1846,7 +1874,7 @@ public final class Mapper {
 
     // ---------------------------------------------------- Wrapper Inner Class
 
-
+    // Mapper对Wrapper提供对应的封装类
     protected static class MappedWrapper extends MapElement<Wrapper> {
 
         /**

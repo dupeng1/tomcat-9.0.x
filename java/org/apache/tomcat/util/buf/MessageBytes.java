@@ -36,6 +36,7 @@ import java.util.Locale;
  * @author James Todd [gonzo@eng.sun.com]
  * @author Costin Manolache
  */
+// tomcat在接受socket传入的字节之后并不会马上进行编码转换，而是保持byte[]数组，在用到的地方再进行转换，byte[]抽象
 public final class MessageBytes implements Cloneable, Serializable {
     private static final long serialVersionUID = 1L;
 

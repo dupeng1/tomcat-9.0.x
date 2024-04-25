@@ -60,6 +60,7 @@ public class InputBuffer extends Reader
 
     private static final Log log = LogFactory.getLog(InputBuffer.class);
 
+    // 缓冲区大小8k
     public static final int DEFAULT_BUFFER_SIZE = 8 * 1024;
 
     // The buffer can be used for byte[] and char[] reading
@@ -78,24 +79,28 @@ public class InputBuffer extends Reader
 
     /**
      * The byte buffer.
+     * 字节缓冲区
      */
     private ByteBuffer bb;
 
 
     /**
      * The char buffer.
+     * 字符缓冲区
      */
     private CharBuffer cb;
 
 
     /**
      * State of the output buffer.
+     * 缓冲区状态：INITIAL_STATE、CHAR_STATE、BYTE_STATE
      */
     private int state = 0;
 
 
     /**
      * Flag which indicates if the input buffer is closed.
+     * 缓冲区是否关闭
      */
     private boolean closed = false;
 
@@ -126,6 +131,7 @@ public class InputBuffer extends Reader
 
     /**
      * Buffer size.
+     * 缓冲区大小，默认8k
      */
     private final int size;
 
@@ -149,7 +155,7 @@ public class InputBuffer extends Reader
      * @param size Buffer size to use
      */
     public InputBuffer(int size) {
-
+        // 缓冲区大小设置、字节缓冲区初始化、字符缓冲区初始化
         this.size = size;
         bb = ByteBuffer.allocate(size);
         clear(bb);
@@ -214,6 +220,7 @@ public class InputBuffer extends Reader
 
 
     public int available() {
+        // 当前缓冲区可读数量
         int available = availableInThisBuffer();
         if (available == 0) {
             coyoteRequest.action(ActionCode.AVAILABLE,
@@ -223,7 +230,7 @@ public class InputBuffer extends Reader
         return available;
     }
 
-
+    // 缓冲区可读数量
     private int availableInThisBuffer() {
         int available = 0;
         if (state == BYTE_STATE) {
@@ -297,7 +304,7 @@ public class InputBuffer extends Reader
 
     /**
      * Reads new bytes in the byte chunk.
-     *
+     * 以字节块读取新的字节
      * @throws IOException An underlying IOException occurred
      */
     @Override
@@ -314,6 +321,7 @@ public class InputBuffer extends Reader
         }
 
         try {
+            // 从coyote request读取字节
             return coyoteRequest.doRead(this);
         } catch (IOException ioe) {
             coyoteRequest.setErrorException(ioe);
@@ -324,23 +332,26 @@ public class InputBuffer extends Reader
     }
 
 
+    // 读取一个字节
     public int readByte() throws IOException {
         throwIfClosed();
-
+        // 校验输入是否结束，保证有数据的情况下字节缓冲区有值
         if (checkByteBufferEof()) {
             return -1;
         }
+        // 读取一个字节
         return bb.get() & 0xFF;
     }
 
-
+    // 读取字节到b，off处最多len个
     public int read(byte[] b, int off, int len) throws IOException {
         throwIfClosed();
-
+        // 校验输入是否结束，保证有数据的情况下字节缓冲区有值
         if (checkByteBufferEof()) {
             return -1;
         }
         int n = Math.min(len, bb.remaining());
+        // 从InputBuffer的字节缓冲区读取字节到b，off处最多len个
         bb.get(b, off, n);
         return n;
     }
@@ -374,7 +385,7 @@ public class InputBuffer extends Reader
 
 
     // ------------------------------------------------- Chars Handling Methods
-
+    // 以字节块读取新的字符
     public int realReadChars() throws IOException {
         checkConverter();
 
@@ -410,6 +421,7 @@ public class InputBuffer extends Reader
     }
 
 
+    // 读取一个字符
     @Override
     public int read() throws IOException {
         throwIfClosed();
@@ -421,6 +433,7 @@ public class InputBuffer extends Reader
     }
 
 
+    // 读取字符到字符数组
     @Override
     public int read(char[] cbuf) throws IOException {
         throwIfClosed();
@@ -428,6 +441,7 @@ public class InputBuffer extends Reader
     }
 
 
+    // 读取字符到字符数组
     @Override
     public int read(char[] cbuf, int off, int len) throws IOException {
         throwIfClosed();
@@ -594,9 +608,11 @@ public class InputBuffer extends Reader
         // no-op
     }
 
-
+    // 校验输入是否结束
     private boolean checkByteBufferEof() throws IOException {
+        // 如果字节缓冲区没有剩余
         if (bb.remaining() == 0) {
+            // 读取字节到字节缓冲区
             int n = realReadBytes();
             if (n < 0) {
                 return true;

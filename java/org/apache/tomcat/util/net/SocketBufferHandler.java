@@ -21,6 +21,7 @@ import java.nio.ByteBuffer;
 
 import org.apache.tomcat.util.buf.ByteBufferUtils;
 
+// 用于socket输入输出的缓冲
 public class SocketBufferHandler {
 
     static SocketBufferHandler EMPTY = new SocketBufferHandler(0, 0, false) {
@@ -52,7 +53,7 @@ public class SocketBufferHandler {
             boolean direct) {
         this.direct = direct;
         if (direct) {
-            readBuffer = ByteBuffer.allocateDirect(readBufferSize);
+            readBuffer = ByteBuffer.allocateDirect(readBufferSize);//默认8k
             writeBuffer = ByteBuffer.allocateDirect(writeBufferSize);
         } else {
             readBuffer = ByteBuffer.allocate(readBufferSize);
@@ -70,7 +71,7 @@ public class SocketBufferHandler {
         setReadBufferConfiguredForWrite(false);
     }
 
-
+    // readBuffer切换到读
     private void setReadBufferConfiguredForWrite(boolean readBufferConFiguredForWrite) {
         // NO-OP if buffer is already in correct state
         if (this.readBufferConfiguredForWrite != readBufferConFiguredForWrite) {
